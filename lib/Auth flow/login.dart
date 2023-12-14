@@ -10,73 +10,93 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // This line will hide the back button
-        title: Text('Login'),
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // a. Static SIT Logo Display on Top
+            SizedBox(
+              height: 20.0,
+            ),
             Container(
               alignment: Alignment.center,
-              child: Image.asset('assets/sit_logo.png'), // Replace with actual logo path
+              child: Image.asset(
+                  'assets/images/ignition.jpg'), // Replace with actual logo path
             ),
-            SizedBox(height: 20.0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 24, 04),
+              child: Text(
+                "Login",
+                style: TextStyle(
+                    fontSize: 32,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+
+            // // a. Static SIT Logo Display on Top
+            // Container(
+            //   alignment: Alignment.center,
+            //   child: Image.asset('assets/sit_logo.png'), // Replace with actual logo path
+            // ),
+            // SizedBox(height: 20.0),
 
             // c. Login - MPIN
             Text(
-              'Login - MPIN (6 Digits Only)',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              'MPIN (6 Digits Only)',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
             ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Enter MPIN'),
-              maxLength: 6,
-              keyboardType: TextInputType.number,
+            SizedBox(height: 15.0),
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Enter MPIN',
+                ),
+                controller: _emailController,
+                maxLength: 6,
+                keyboardType: TextInputType.number,
+              ),
             ),
+
+            // Login Button
+            ElevatedButton(
+              onPressed: () async {
+                // Simulating a 1-second delay for login
+                await Future.delayed(Duration(seconds: 1));
+
+                // Simulating a successful login
+                // Replace this with your actual authentication logic
+                bool isAuthenticated = true;
+
+                if (isAuthenticated) {
+                  // Navigate to the dashboard screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Dashboard()),
+                  );
+                } else {
+                  // Handle failed authentication
+                  // You can show an error message or perform other actions
+                }
+              },
+              child: Text('Login'),
+            ),
+
             SizedBox(height: 20.0),
 
-            // Forgot Password Popup Button
-            ElevatedButton(
-              onPressed: () {
+            InkWell(
+              onTap: () {
                 _showForgotPasswordPopup(context);
               },
               child: Text('Forgot Password'),
             ),
-
-            SizedBox(height: 10.0),
-
-            // Login Button
-            ElevatedButton(
-  onPressed: () async {
-    // Simulating a 1-second delay for login
-    await Future.delayed(Duration(seconds: 1));
-
-    // Simulating a successful login
-    // Replace this with your actual authentication logic
-    bool isAuthenticated = true;
-
-    if (isAuthenticated) {
-      // Navigate to the dashboard screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Dashboard()),
-      );
-    } else {
-      // Handle failed authentication
-      // You can show an error message or perform other actions
-    }
-  },
-  child: Text('Login'),
-),
-
-            SizedBox(height: 10.0),
-
+            SizedBox(
+              height: 10,
+            ),
             // Navigate to Sign Up Screen
-            TextButton(
-              onPressed: () {
+            InkWell(
+              onTap: () {
                 // Simulating a 1-second delay before navigating to the sign-up screen
                 Future.delayed(Duration(seconds: 1), () {
                   Navigator.push(

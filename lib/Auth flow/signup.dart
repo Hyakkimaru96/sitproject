@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/login.dart';
+import 'package:sit/Utilities/global.dart';
 
 class SignUpScreen extends StatelessWidget {
   // List of major cities in Tamil Nadu
@@ -22,7 +23,7 @@ class SignUpScreen extends StatelessWidget {
   String personName = '';
   String personMobileNo = '';
 
-   Future<void> _sendDataToServer() async {
+  Future<void> _sendDataToServer() async {
     // Simulating a 1-second delay for sign-up
     await Future.delayed(Duration(seconds: 1));
 
@@ -48,54 +49,61 @@ class SignUpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text('Sign Up'),
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: 20.0),
             // a. Static SIT Logo Display on Top
             Container(
               alignment: Alignment.center,
-              child: Image.asset('assets/sit_logo.png'), // Replace with actual logo path
+              child: Image.asset(
+                  'assets/images/ignition.jpg'), // Replace with actual logo path
             ),
-            SizedBox(height: 20.0),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Full Name'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 24, 04),
+              child: Text(
+                "Sign Up",
+                style: TextStyle(
+                    fontSize: 24,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w600),
+              ),
             ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Email Address'),
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Mobile No'),
-            ),
+            // SizedBox(height: 20.0),
+            textFieldPrettier(
+                context, TextEditingController(text: fullName), 'Full Name'),
+            textFieldPrettier(context,
+                TextEditingController(text: emailAddress), 'Email Address'),
+            textFieldPrettier(
+                context, TextEditingController(text: mobileNo), 'Mobile No'),
             // Dropdown for selecting city
-            DropdownButtonFormField(
-              decoration: InputDecoration(labelText: 'City'),
-              value: selectedCity,
-              items: citiesInTamilNadu.map((city) {
-                return DropdownMenuItem(
-                  value: city,
-                  child: Text(city),
-                );
-              }).toList(),
-              onChanged: (value) {
-                // Update the selected city
-                selectedCity = value!;
-              },
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: DropdownButtonFormField(
+                decoration: InputDecoration(labelText: 'City'),
+                value: selectedCity,
+                items: citiesInTamilNadu.map((city) {
+                  return DropdownMenuItem(
+                    value: city,
+                    child: Text(city),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  // Update the selected city
+                  selectedCity = value!;
+                },
+              ),
             ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Referred By'),
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Person Name'),
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Person Mobile No'),
-            ),
+            textFieldPrettier(context, TextEditingController(text: referredBy),
+                'Referred By'),
+            textFieldPrettier(context, TextEditingController(text: personName),
+                'Person Name'),
+            textFieldPrettier(
+                context,
+                TextEditingController(text: personMobileNo),
+                'Person Mobile No'),
             SizedBox(height: 20.0),
 
             // f. T&C + Contact SIT Web Link
@@ -116,22 +124,21 @@ class SignUpScreen extends StatelessWidget {
 
             // Signup Button
             ElevatedButton(
-  onPressed: () async {
-    // Call the function to send data to the server
-    await _sendDataToServer();
+              onPressed: () async {
+                // Call the function to send data to the server
+                await _sendDataToServer();
 
-    // Simulating a 1-second delay before navigating to the login screen
-    await Future.delayed(Duration(seconds: 1));
+                // Simulating a 1-second delay before navigating to the login screen
+                await Future.delayed(Duration(seconds: 1));
 
-    // Navigate to the login screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
-  },
-  child: Text('Sign Up'),
-),
-
+                // Navigate to the login screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              child: Text('Sign Up'),
+            ),
 
             SizedBox(height: 10.0),
 

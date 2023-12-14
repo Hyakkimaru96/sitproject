@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import 'package:sit/Utilities/global.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -14,32 +15,121 @@ class PostPage extends StatefulWidget {
 
 class _PostPageState extends State<PostPage> {
   List<Map<String, dynamic>> posts = [];
+  @override
+  void initState() {
+    super.initState();
+
+    // Adding sample posts
+    posts.addAll([
+      {
+        'title': 'Exploring Nature',
+        'description': 'A beautiful day spent exploring nature trails.',
+        'photos': [
+          'https://picsum.photos/250?image=101',
+          'https://picsum.photos/250?image=102',
+        ],
+        'videos': [
+          'https://www.example.com/nature_video.mp4',
+        ],
+        'connections': [
+          {
+            'response': [
+              {
+                'name': 'Nature Lover',
+                'description': 'Exploring the beauty of nature.',
+                'image': 'https://picsum.photos/250?image=103',
+              }
+            ]
+          }
+        ],
+      },
+      {
+        'title': 'Culinary Delights',
+        'description': 'A culinary adventure trying new dishes and flavors.',
+        'photos': [
+          'https://picsum.photos/250?image=104',
+          'https://picsum.photos/250?image=105',
+        ],
+        'videos': [
+          'https://www.example.com/culinary_video.mp4',
+        ],
+        'follow': [
+          {
+            'response': [
+              {
+                'name': 'Foodie Explorer',
+                'description': 'Exploring the world one dish at a time.',
+                'image': 'https://picsum.photos/250?image=106',
+              }
+            ]
+          }
+        ],
+      },
+      {
+        'title': 'Tech Innovations',
+        'description': 'Discovering the latest tech innovations and gadgets.',
+        'photos': [
+          'https://picsum.photos/250?image=107',
+          'https://picsum.photos/250?image=108',
+        ],
+        'videos': [
+          'https://www.example.com/tech_video.mp4',
+        ],
+        'others': [
+          {
+            'response': [
+              {
+                'name': 'Tech Enthusiast',
+                'description': 'Passionate about cutting-edge technology.',
+                'image': 'https://picsum.photos/250?image=109',
+              }
+            ]
+          }
+        ],
+      },
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Posts'),
-        automaticallyImplyLeading: false,
-        
-      ),
-      body: ListView.builder(
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          final post = posts[index];
-          return PostPreviewCard(
-            title: post['title'],
-            description: post['description'],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FullPostDetailsPage(post: post),
-                ),
-              );
-            },
-          );
-        },
+      body: Column(
+        children: [
+          SizedBox(
+            height: 32,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 32, 24, 04),
+            child: Text(
+              "Posts",
+              style: TextStyle(
+                  fontSize: 32,
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                return PostPreviewCard(
+                  title: post['title'],
+                  description: post['description'],
+                  url: post['photos'][0],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FullPostDetailsPage(post: post),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: OpenContainer(
         closedBuilder: (context, action) {
@@ -66,13 +156,14 @@ class _PostPageState extends State<PostPage> {
 class PostPreviewCard extends StatelessWidget {
   final String title;
   final String description;
+  final String url;
   final VoidCallback onTap;
 
-  PostPreviewCard({
-    required this.title,
-    required this.description,
-    required this.onTap,
-  });
+  PostPreviewCard(
+      {required this.title,
+      required this.description,
+      required this.onTap,
+      required this.url});
 
   @override
   Widget build(BuildContext context) {
@@ -80,9 +171,25 @@ class PostPreviewCard extends StatelessWidget {
       margin: EdgeInsets.all(8.0),
       child: InkWell(
         onTap: onTap,
-        child: ListTile(
-          title: Text(title),
-          subtitle: Text(description),
+        child: Column(
+          children: [
+            ListTile(
+              tileColor: Colors.transparent.withAlpha(0),
+              title: Text(title),
+              subtitle: Text(description),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                height: 300,
+                width: double.infinity,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );
@@ -97,76 +204,51 @@ class FullPostDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(post['title']),
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(
+              height: 32,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
+              child: Text(
+                "Update Profile",
+                style: TextStyle(
+                    fontSize: 32,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(
+              height: 8,
+            ),
             if (post['description'] != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Description: ${post['description']}',
+                  '${post['description']}',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             if (post['photos'] != null)
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Photos:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8.0),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 8.0,
-                    children: List.generate(
-                      post['photos'].length,
-                      (index) => Image.asset(
-                        post['photos'][index],
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.cover,
-                      ),
+                children: List.generate(
+                  post['photos'].length,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Image.network(
+                      post['photos'][index],
+                      fit: BoxFit.cover,
                     ),
                   ),
-                ],
+                ),
               ),
-            if (post['videos'] != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Videos:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8.0),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 8.0,
-                    children: List.generate(
-                      post['videos'].length,
-                      (index) => Container(
-                        width: 120,
-                        height: 80,
-                        color: Colors.grey,
-                        child: Center(
-                          child: Text('Video ${index + 1}'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            if (post['connections'] != null)
-              _buildSection('Connections', post['connections']),
-            if (post['follow'] != null) _buildSection('Follow', post['follow']),
-            if (post['others'] != null) _buildSection('Others', post['others']),
+            // if (post['connections'] != null) _buildSection('Connections', post['connections']),
+            // if (post['follow'] != null) _buildSection('Follow', post['follow']),
+            // if (post['others'] != null) _buildSection('Others', post['others']),
           ],
         ),
       ),
@@ -195,7 +277,7 @@ class FullPostDetailsPage extends StatelessWidget {
                 shape: BoxShape.circle,
                 image: DecorationImage(
                   fit: BoxFit.cover,
-                  image: AssetImage(item['response'][0]['image']),
+                  image: NetworkImage(item['response'][0]['image']),
                 ),
               ),
             ),
@@ -223,43 +305,46 @@ class _AddPostPageState extends State<AddPostPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Post'),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 32,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
+                    child: Text(
+                      "Add Post",
+                      style: TextStyle(
+                          fontSize: 32,
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  textFieldPrettier(context, _titleController, 'Name'),
+                  textFieldPrettier(
+                      context, _descriptionController, 'Description'),
+                  textFieldPrettier(
+                      context, _photosController, 'Photos (comma-separated)'),
+                  textFieldPrettier(
+                      context, _videosController, 'Videos (comma-separated)'),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(labelText: 'Title'),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _photosController,
-              decoration: InputDecoration(labelText: 'Photos (comma-separated)'),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _videosController,
-              decoration: InputDecoration(labelText: 'Videos (comma-separated)'),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: () {
-                _addPost();
-                Navigator.pop(context);
-              },
-              child: Text('Add Post'),
-            ),
-          ],
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _addPost();
+          Navigator.pop(context);
+        },
+        child: Icon(Icons.done),
       ),
     );
   }
@@ -268,7 +353,9 @@ class _AddPostPageState extends State<AddPostPage> {
     final newPost = {
       'title': _titleController.text,
       'description': _descriptionController.text,
-      'photos': _photosController.text.split(',').map((e) => e.trim()).toList(),
+      'photos': [
+        'https://picsum.photos/200/300?random=1'
+      ], //_photosController.text.split(',').map((e) => e.trim()).toList(),
       'videos': _videosController.text.split(',').map((e) => e.trim()).toList(),
     };
 

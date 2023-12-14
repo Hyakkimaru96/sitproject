@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'Utilities/global.dart';
 import 'dart:convert';
 
 class ProfileApp extends StatelessWidget {
@@ -8,13 +9,8 @@ class ProfileApp extends StatelessWidget {
     return MaterialApp(
       title: 'User Profile',
       theme: ThemeData(
-        primaryColor: Colors.white,
-        scaffoldBackgroundColor: Colors.white,
-        textTheme: TextTheme(
-          bodyText1: TextStyle(
-            color: Colors.black,
-          ),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
       home: UserProfile(),
@@ -114,7 +110,8 @@ class _UserProfileState extends State<UserProfile> {
       if (response.statusCode == 200) {
         print('Server response: ${response.body}');
       } else {
-        print('Failed to update data on the server. Status code: ${response.statusCode}');
+        print(
+            'Failed to update data on the server. Status code: ${response.statusCode}');
       }
     } catch (error) {
       print('Error sending data to the server: $error');
@@ -139,75 +136,57 @@ class _UserProfileState extends State<UserProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('User Profile'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.done),
-            onPressed: () {
-              // Use the FutureBuilder to handle the asynchronous update
-              updateUserData();
-            },
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: updateUserData,
+        child: Icon(Icons.done),
       ),
       body: SingleChildScrollView(
         child: Center(
-          child: Column(
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Name', contentPadding: EdgeInsets.all(16.0)),
-              ),
-              TextFormField(
-                controller: emailController,
-                decoration: InputDecoration(labelText: 'Email', contentPadding: EdgeInsets.all(16.0)),
-              ),
-              TextFormField(
-                controller: phoneController,
-                decoration: InputDecoration(labelText: 'Phone', contentPadding: EdgeInsets.all(16.0)),
-              ),
-              DropdownButtonFormField<String>(
-                      value: selectedCity,
-                      onChanged: (String? value) {
-                        setState(() {
-                          selectedCity = value!;
-                        });
-                      },
-                      items: citiesInTamilNadu.map((city) {
-                        return DropdownMenuItem<String>(
-                          value: city,
-                          child: Text(city),
-                        );
-                      }).toList(),
-                      decoration: InputDecoration(
-                        labelText: 'City',
-                        contentPadding: EdgeInsets.all(16.0),
-                      ),
-                    ),
-              TextFormField(
-                controller: referredByController,
-                decoration: InputDecoration(labelText: 'Referred By', contentPadding: EdgeInsets.all(16.0)),
-                readOnly: true,
-              ),
-              TextFormField(
-                controller: personNameController,
-                decoration: InputDecoration(labelText: 'Person Name', contentPadding: EdgeInsets.all(16.0)),
-              ),
-              TextFormField(
-                controller: personMobileController,
-                decoration: InputDecoration(labelText: 'Person Mobile No', contentPadding: EdgeInsets.all(16.0)),
-              ),
-              TextFormField(
-                controller: professionalIntroController,
-                decoration: InputDecoration(labelText: 'Professional Intro', contentPadding: EdgeInsets.all(16.0)),
-                maxLines: null,
-              ),
-              TextFormField(
-                controller: websiteController,
-                decoration: InputDecoration(labelText: 'Websites / Social Media Handle Link', contentPadding: EdgeInsets.all(16.0)),
-              ),
-            ],
+          child: SafeArea(
+            minimum: EdgeInsets.fromLTRB(16, 8, 8, 16),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
+                  child: Text(
+                    "Update Profile",
+                    style: TextStyle(
+                        fontSize: 32,
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                textFieldPrettier(context, nameController, 'Name'),
+                textFieldPrettier(context, emailController, 'Email'),
+                textFieldPrettier(context, phoneController, 'Phone'),
+                DropdownButtonFormField<String>(
+                  value: selectedCity,
+                  onChanged: (String? value) {
+                    setState(() {
+                      selectedCity = value!;
+                    });
+                  },
+                  items: citiesInTamilNadu.map((city) {
+                    return DropdownMenuItem<String>(
+                      value: city,
+                      child: Text(city),
+                    );
+                  }).toList(),
+                  decoration: InputDecoration(
+                    labelText: 'City',
+                    contentPadding: EdgeInsets.all(16.0),
+                  ),
+                ),
+                textFieldPrettier(context, referredByController, 'Referred By'),
+                textFieldPrettier(context, personNameController, 'Person Name'),
+                textFieldPrettier(
+                    context, personMobileController, 'Person Mobile No'),
+                textFieldPrettier(
+                    context, professionalIntroController, 'Professional Intro'),
+                textFieldPrettier(context, websiteController,
+                    'Websites / Social Media Handle Link'),
+              ],
+            ),
           ),
         ),
       ),

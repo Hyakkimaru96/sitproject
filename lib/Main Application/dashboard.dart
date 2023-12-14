@@ -30,12 +30,12 @@ class _DashboardState extends State<Dashboard> {
             label: 'Connections',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.newspaper),
+            label: 'Posts',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.note),
-            label: 'Posts',
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),
@@ -53,9 +53,9 @@ class _DashboardState extends State<Dashboard> {
       case 0:
         return ConnectionsPage();
       case 1:
-        return ProfileApp();
-      case 2:
         return PostPage();
+      case 2:
+        return ProfileApp();
       default:
         return ConnectionsPage(); // Set a default page
     }
