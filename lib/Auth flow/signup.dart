@@ -1,11 +1,14 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/login.dart';
 import 'package:sit/Utilities/global.dart';
 
-class SignUpScreen extends StatelessWidget {
-  // List of major cities in Tamil Nadu
+class SignUpScreen extends StatefulWidget {
+  @override
+  _SignUpScreenState createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
   final List<String> citiesInTamilNadu = [
     'Chennai',
     'Coimbatore',
@@ -15,6 +18,7 @@ class SignUpScreen extends StatelessWidget {
     'Tirunelveli',
     // Add more cities as needed
   ];
+
   String fullName = '';
   String emailAddress = '';
   String mobileNo = '';
@@ -22,6 +26,47 @@ class SignUpScreen extends StatelessWidget {
   String referredBy = '';
   String personName = '';
   String personMobileNo = '';
+
+  TextEditingController fullNameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController mobileNoController = TextEditingController();
+  TextEditingController referredByController = TextEditingController();
+  TextEditingController personNameController = TextEditingController();
+  TextEditingController personMobileNoController = TextEditingController();
+
+  // Create a boolean variable to track whether all required fields are filled
+  bool areAllFieldsFilled = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Add listeners to the text controllers for real-time validation
+    fullNameController.addListener(updateButtonState);
+    emailController.addListener(updateButtonState);
+    mobileNoController.addListener(updateButtonState);
+    referredByController.addListener(updateButtonState);
+    personNameController.addListener(updateButtonState);
+    personMobileNoController.addListener(updateButtonState);
+  }
+
+  void updateButtonState() {
+    // Check if all required fields are filled
+    if (fullNameController.text.isNotEmpty &&
+        emailController.text.isNotEmpty &&
+        mobileNoController.text.isNotEmpty &&
+        referredByController.text.isNotEmpty &&
+        personNameController.text.isNotEmpty &&
+        personMobileNoController.text.isNotEmpty) {
+      setState(() {
+        areAllFieldsFilled = true;
+      });
+    } else {
+      setState(() {
+        areAllFieldsFilled = false;
+      });
+    }
+  }
 
   Future<void> _sendDataToServer() async {
     // Simulating a 1-second delay for sign-up
@@ -44,6 +89,14 @@ class SignUpScreen extends StatelessWidget {
     // Print the JSON string in the terminal (you would replace this with your API call)
     print('Sending data to server...');
     print('JSON Data: $jsonString');
+
+    // Navigate to the login screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(),
+      ),
+    );
   }
 
   @override
@@ -71,13 +124,10 @@ class SignUpScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600),
               ),
             ),
-            // SizedBox(height: 20.0),
             textFieldPrettier(
-                context, TextEditingController(text: fullName), 'Full Name'),
-            textFieldPrettier(context,
-                TextEditingController(text: emailAddress), 'Email Address'),
-            textFieldPrettier(
-                context, TextEditingController(text: mobileNo), 'Mobile No'),
+                context, fullNameController, 'Full Name'),
+            textFieldPrettier(context, emailController, 'Email Address'),
+            textFieldPrettier(context, mobileNoController, 'Mobile No'),
             // Dropdown for selecting city
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -92,18 +142,16 @@ class SignUpScreen extends StatelessWidget {
                 }).toList(),
                 onChanged: (value) {
                   // Update the selected city
-                  selectedCity = value!;
+                  setState(() {
+                    selectedCity = value!;
+                  });
                 },
               ),
             ),
-            textFieldPrettier(context, TextEditingController(text: referredBy),
-                'Referred By'),
-            textFieldPrettier(context, TextEditingController(text: personName),
-                'Person Name'),
+            textFieldPrettier(context, referredByController, 'Referred By'),
+            textFieldPrettier(context, personNameController, 'Person Name'),
             textFieldPrettier(
-                context,
-                TextEditingController(text: personMobileNo),
-                'Person Mobile No'),
+                context, personMobileNoController, 'Person Mobile No'),
             SizedBox(height: 20.0),
 
             // f. T&C + Contact SIT Web Link
@@ -124,19 +172,12 @@ class SignUpScreen extends StatelessWidget {
 
             // Signup Button
             ElevatedButton(
-              onPressed: () async {
-                // Call the function to send data to the server
-                await _sendDataToServer();
-
-                // Simulating a 1-second delay before navigating to the login screen
-                await Future.delayed(Duration(seconds: 1));
-
-                // Navigate to the login screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
-              },
+              onPressed: areAllFieldsFilled
+                  ? () {
+                      // Call the function to send data to the server
+                      _sendDataToServer();
+                    }
+                  : null, // Disable the button if not all fields are filled
               child: Text('Sign Up'),
             ),
 

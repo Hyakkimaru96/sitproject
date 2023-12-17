@@ -1,11 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/signup.dart';
-
 import '../Main application/dashboard.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController _emailController = TextEditingController();
+  TextEditingController _forgotpasswordController = TextEditingController();
+
+  // Create a boolean variable to track whether all required fields are filled
+  bool areAllFieldsFilled = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Add listeners to the text controllers for real-time validation
+    _emailController.addListener(updateButtonState);
+  }
+
+  void updateButtonState() {
+    // Check if all required fields are filled
+    if (_emailController.text.isNotEmpty) {
+      setState(() {
+        areAllFieldsFilled = true;
+      });
+    } else {
+      setState(() {
+        areAllFieldsFilled = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +63,6 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
 
-            // // a. Static SIT Logo Display on Top
-            // Container(
-            //   alignment: Alignment.center,
-            //   child: Image.asset('assets/sit_logo.png'), // Replace with actual logo path
-            // ),
-            // SizedBox(height: 20.0),
-
-            // c. Login - MPIN
             Text(
               'MPIN (6 Digits Only)',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
@@ -59,27 +80,30 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
 
-            // Login Button
             ElevatedButton(
-              onPressed: () async {
-                // Simulating a 1-second delay for login
-                await Future.delayed(Duration(seconds: 1));
+              onPressed: areAllFieldsFilled
+                  ? () async {
+                      // Simulating a 1-second delay for login
+                      await Future.delayed(Duration(seconds: 1));
 
-                // Simulating a successful login
-                // Replace this with your actual authentication logic
-                bool isAuthenticated = true;
+                      // Simulating a successful login
+                      // Replace this with your actual authentication logic
+                      bool isAuthenticated = true;
 
-                if (isAuthenticated) {
-                  // Navigate to the dashboard screen
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => Dashboard()),
-                  );
-                } else {
-                  // Handle failed authentication
-                  // You can show an error message or perform other actions
-                }
-              },
+                      if (isAuthenticated) {
+                        // Navigate to the dashboard screen
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Dashboard(),
+                          ),
+                        );
+                      } else {
+                        // Handle failed authentication
+                        // You can show an error message or perform other actions
+                      }
+                    }
+                  : null, // Disable the button if not all fields are filled
               child: Text('Login'),
             ),
 
@@ -94,7 +118,7 @@ class LoginScreen extends StatelessWidget {
             SizedBox(
               height: 10,
             ),
-            // Navigate to Sign Up Screen
+
             InkWell(
               onTap: () {
                 // Simulating a 1-second delay before navigating to the sign-up screen
@@ -122,7 +146,7 @@ class LoginScreen extends StatelessWidget {
           content: Form(
             key: _formKey,
             child: TextFormField(
-              controller: _emailController,
+              controller: _forgotpasswordController,
               decoration: InputDecoration(labelText: 'Enter Registered Email'),
               validator: (value) {
                 if (value!.isEmpty || !value!.contains('@')) {

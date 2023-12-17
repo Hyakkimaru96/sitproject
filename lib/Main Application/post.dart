@@ -196,70 +196,191 @@ class PostPreviewCard extends StatelessWidget {
   }
 }
 
-class FullPostDetailsPage extends StatelessWidget {
+class FullPostDetailsPage extends StatefulWidget {
   final Map<String, dynamic> post;
 
   FullPostDetailsPage({required this.post});
 
   @override
+  _FullPostDetailsPageState createState() => _FullPostDetailsPageState();
+}
+
+class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
+  List<Comment> comments = [
+    Comment(text: 'Comment 1', timestamp: DateTime.now().subtract(Duration(minutes: 15))),
+    Comment(text: 'Comment 2', timestamp: DateTime.now().subtract(Duration(minutes: 7))),
+    Comment(text: 'Comment 3', timestamp: DateTime.now().subtract(Duration(minutes: 2))),
+  ];
+
+  bool isLiked = false; // New variable to track whether the post is liked
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 32,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
-              child: Text(
-                "Update Profile",
-                style: TextStyle(
-                    fontSize: 32,
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600),
+      appBar: AppBar(
+        title: Text('Post Details'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate back to the previous screen
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 32,
               ),
-            ),
-            SizedBox(
-              height: 8,
-            ),
-            if (post['description'] != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                  '${post['description']}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+              SizedBox(
+                height: 8,
+              ),
+              if (widget.post['description'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    '${widget.post['description']}',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-            if (post['photos'] != null)
-              Column(
-                children: List.generate(
-                  post['photos'].length,
-                  (index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Image.network(
-                      post['photos'][index],
-                      fit: BoxFit.cover,
+              if (widget.post['photos'] != null)
+                Column(
+                  children: List.generate(
+                    widget.post['photos'].length,
+                        (index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Image.network(
+                        widget.post['photos'][index],
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
+              SizedBox(height: 16), // Add some space between photos and comments
+
+              // Display Like button
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? Colors.red : null,
+                    ),
+                    onPressed: () {
+                      // Toggle the like status
+                      setState(() {
+                        isLiked = !isLiked;
+                      });
+                    },
+                  ),
+                  Text(
+                    'Like',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-            // if (post['connections'] != null) _buildSection('Connections', post['connections']),
-            // if (post['follow'] != null) _buildSection('Follow', post['follow']),
-            // if (post['others'] != null) _buildSection('Others', post['others']),
-          ],
+
+              // Display comments
+              if (comments.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Comments:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    // Display comments using ListView.builder
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        Comment comment = comments[index];
+                        return ListTile(
+                          title: Text(comment.text),
+                          subtitle: Text(_formatTimestamp(comment.timestamp)),
+                        );
+                      },
+                    ),
+                    SizedBox(height: 16),
+                  ],
+                ),
+              ElevatedButton(
+                onPressed: () {
+                  // Handle button click
+                  _showCommentDialog(context);
+                },
+                child: Text('Add Comment'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Map<String, dynamic>> data) {
+  void _showCommentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        TextEditingController commentController = TextEditingController();
+
+        return AlertDialog(
+          title: Text('Add a Comment'),
+          content: Column(
+            children: [
+              // Add input fields or any other widgets for the comment
+              TextField(
+                controller: commentController,
+                decoration: InputDecoration(labelText: 'Your Comment'),
+                // Add controller or onChanged callback for handling user input
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  // Handle the comment submission
+                  String newComment = commentController.text.trim();
+                  if (newComment.isNotEmpty) {
+                    // Update the state and add the new comment
+                    setState(() {
+                      comments.insert(0, Comment(text: newComment, timestamp: DateTime.now()));
+                    });
+
+                    // Close the dialog
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text('Submit Comment'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    return '${timestamp.hour}:${timestamp.minute} on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
+  }
+}
+
+
+class Comment {
+  final String text;
+  final DateTime timestamp;
+
+  Comment({required this.text, required this.timestamp});
+}
+  
+  /*Widget _buildSection(String title, List<Map<String, dynamic>> data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
+        Padding(  
           padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
           child: Text(
             title,
@@ -284,8 +405,7 @@ class FullPostDetailsPage extends StatelessWidget {
           ),
       ],
     );
-  }
-}
+  }*/
 
 class AddPostPage extends StatefulWidget {
   final Function(Map<String, dynamic> post) onPostAdded;
