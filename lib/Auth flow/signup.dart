@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/login.dart';
 import 'package:sit/Utilities/global.dart';
+import 'package:http/http.dart' as http;
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -16,21 +17,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     'Tiruchirappalli',
     'Salem',
     'Tirunelveli',
-    // Add more cities as needed
   ];
 
   String fullName = '';
   String emailAddress = '';
   String mobileNo = '';
   String selectedCity = 'Chennai';
-  String referredBy = '';
   String personName = '';
   String personMobileNo = '';
 
   TextEditingController fullNameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController mobileNoController = TextEditingController();
-  TextEditingController referredByController = TextEditingController();
   TextEditingController personNameController = TextEditingController();
   TextEditingController personMobileNoController = TextEditingController();
 
@@ -41,11 +39,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void initState() {
     super.initState();
 
-    // Add listeners to the text controllers for real-time validation
     fullNameController.addListener(updateButtonState);
     emailController.addListener(updateButtonState);
     mobileNoController.addListener(updateButtonState);
-    referredByController.addListener(updateButtonState);
     personNameController.addListener(updateButtonState);
     personMobileNoController.addListener(updateButtonState);
   }
@@ -55,7 +51,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (fullNameController.text.isNotEmpty &&
         emailController.text.isNotEmpty &&
         mobileNoController.text.isNotEmpty &&
-        referredByController.text.isNotEmpty &&
         personNameController.text.isNotEmpty &&
         personMobileNoController.text.isNotEmpty) {
       setState(() {
@@ -69,34 +64,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _sendDataToServer() async {
-    // Simulating a 1-second delay for sign-up
-    await Future.delayed(Duration(seconds: 1));
-
-    // Construct a JSON object with the collected data
+    fullName = fullNameController.text;
+    emailAddress = emailController.text;
+    mobileNo = mobileNoController.text;
+    personName = personNameController.text;
+    personMobileNo = personMobileNoController.text;
     Map<String, dynamic> jsonData = {
       'fullName': fullName,
       'emailAddress': emailAddress,
       'mobileNo': mobileNo,
       'selectedCity': selectedCity,
-      'referredBy': referredBy,
       'personName': personName,
       'personMobileNo': personMobileNo,
     };
 
-    // Convert the JSON object to a JSON string
     String jsonString = json.encode(jsonData);
-
-    // Print the JSON string in the terminal (you would replace this with your API call)
     print('Sending data to server...');
     print('JSON Data: $jsonString');
-
-    // Navigate to the login screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoginScreen(),
-      ),
+    final response = await http.post(
+      Uri.parse(
+          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/create'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonString,
     );
+
+    if (response.statusCode == 200) {
+      print('Server response: ${response.body}');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+    } else {
+      print(
+          'Failed to send data to the server. Status code: ${response.statusCode}');
+    }
   }
 
   @override
@@ -124,8 +129,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     fontWeight: FontWeight.w600),
               ),
             ),
-            textFieldPrettier(
-                context, fullNameController, 'Full Name'),
+            textFieldPrettier(context, fullNameController, 'Full Name'),
             textFieldPrettier(context, emailController, 'Email Address'),
             textFieldPrettier(context, mobileNoController, 'Mobile No'),
             // Dropdown for selecting city
@@ -148,7 +152,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 },
               ),
             ),
-            textFieldPrettier(context, referredByController, 'Referred By'),
             textFieldPrettier(context, personNameController, 'Person Name'),
             textFieldPrettier(
                 context, personMobileNoController, 'Person Mobile No'),
