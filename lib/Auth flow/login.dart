@@ -178,3 +178,116 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
+class SetMasterpinScreen extends StatefulWidget {
+  @override
+  _SetMasterpinScreenState createState() => _SetMasterpinScreenState();
+}
+
+class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  TextEditingController _masterpinController = TextEditingController();
+
+  // Create a boolean variable to track whether all required fields are filled
+  bool areAllFieldsFilled = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Add listeners to the text controllers for real-time validation
+    _masterpinController.addListener(updateButtonState);
+  }
+
+  void updateButtonState() {
+    // Check if all required fields are filled
+    if (_masterpinController.text.isNotEmpty) {
+      setState(() {
+        areAllFieldsFilled = true;
+      });
+    } else {
+      setState(() {
+        areAllFieldsFilled = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 20.0,
+            ),
+            Container(
+              alignment: Alignment.center,
+              child: Image.asset(
+                  'assets/images/ignition.jpg'), // Replace with actual logo path
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 24, 04),
+              child: Text(
+                "Set Masterpin",
+                style: TextStyle(
+                    fontSize: 32,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+
+            Text(
+              'MPIN (6 Digits Only)',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
+            ),
+            SizedBox(height: 15.0),
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Form(
+                key: _formKey,
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Enter MPIN',
+                  ),
+                  controller: _masterpinController,
+                  maxLength: 6,
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value!.isEmpty || value.length != 6) {
+                      return 'Please enter a valid 6-digit MPIN';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed: areAllFieldsFilled
+                  ? () async {
+                      // Simulating a 1-second delay for setting masterpin
+                      await Future.delayed(Duration(seconds: 1));
+
+                      // Simulating a successful masterpin setting
+                      // Replace this with your actual logic for setting masterpin
+
+                      // After setting masterpin, navigate to the dashboard screen
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Dashboard(),
+                        ),
+                      );
+                    }
+                  : null, // Disable the button if not all fields are filled
+              child: Text('Set Masterpin'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
