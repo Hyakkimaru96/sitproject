@@ -178,7 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
 class SetMasterpinScreen extends StatefulWidget {
   @override
   _SetMasterpinScreenState createState() => _SetMasterpinScreenState();
@@ -187,9 +186,11 @@ class SetMasterpinScreen extends StatefulWidget {
 class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController _masterpinController = TextEditingController();
+  TextEditingController _confirmMasterpinController = TextEditingController();
 
-  // Create a boolean variable to track whether all required fields are filled
+  // Create boolean variables to track whether all required fields are filled
   bool areAllFieldsFilled = false;
+  bool doPasswordsMatch = false;
 
   @override
   void initState() {
@@ -197,19 +198,19 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
 
     // Add listeners to the text controllers for real-time validation
     _masterpinController.addListener(updateButtonState);
+    _confirmMasterpinController.addListener(updateButtonState);
   }
 
   void updateButtonState() {
     // Check if all required fields are filled
-    if (_masterpinController.text.isNotEmpty) {
-      setState(() {
-        areAllFieldsFilled = true;
-      });
-    } else {
-      setState(() {
-        areAllFieldsFilled = false;
-      });
-    }
+    bool masterpinFilled = _masterpinController.text.isNotEmpty;
+    bool confirmMasterpinFilled = _confirmMasterpinController.text.isNotEmpty;
+    bool passwordsMatch = _masterpinController.text == _confirmMasterpinController.text;
+
+    setState(() {
+      areAllFieldsFilled = masterpinFilled && confirmMasterpinFilled;
+      doPasswordsMatch = passwordsMatch;
+    });
   }
 
   @override
@@ -248,25 +249,47 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
               padding: const EdgeInsets.only(left: 8.0),
               child: Form(
                 key: _formKey,
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Enter MPIN',
-                  ),
-                  controller: _masterpinController,
-                  maxLength: 6,
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value!.isEmpty || value.length != 6) {
-                      return 'Please enter a valid 6-digit MPIN';
-                    }
-                    return null;
-                  },
+                child: Column(
+                  children: [
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Enter MPIN',
+                      ),
+                      controller: _masterpinController,
+                      maxLength: 6,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value!.isEmpty || value.length != 6) {
+                          return 'Please enter a valid 6-digit MPIN';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 15.0),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Confirm MPIN',
+                      ),
+                      controller: _confirmMasterpinController,
+                      maxLength: 6,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value!.isEmpty || value.length != 6) {
+                          return 'Please enter a valid 6-digit MPIN';
+                        }
+                        if (value != _masterpinController.text) {
+                          return 'MPINs do not match';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
 
             ElevatedButton(
-              onPressed: areAllFieldsFilled
+              onPressed: areAllFieldsFilled && doPasswordsMatch
                   ? () async {
                       // Simulating a 1-second delay for setting masterpin
                       await Future.delayed(Duration(seconds: 1));
@@ -278,11 +301,11 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => Dashboard(),
+                          builder: (context) => LoginScreen(),
                         ),
                       );
                     }
-                  : null, // Disable the button if not all fields are filled
+                  : null, // Disable the button if not all fields are filled or passwords don't match
               child: Text('Set Masterpin'),
             ),
           ],
