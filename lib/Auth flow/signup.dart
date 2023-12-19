@@ -1,7 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:sit/Auth%20Flow/login.dart';
+import 'package:sit/Main%20Application/dashboard.dart';
+import 'package:sit/Utilities/Database_helper.dart';
+import 'package:sit/Auth%20flow/verify.dart';
 import 'package:sit/Utilities/global.dart';
+import 'package:http/http.dart' as http;
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -9,13 +15,55 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final List<String> citiesInTamilNadu = [
+  List<String> majorCitiesInIndia = [
+    'Mumbai',
+    'Delhi',
+    'Bangalore',
+    'Hyderabad',
     'Chennai',
+    'Kolkata',
+    'Ahmedabad',
+    'Pune',
+    'Surat',
+    'Jaipur',
+    'Lucknow',
+    'Kanpur',
+    'Nagpur',
+    'Indore',
+    'Thane',
+    'Bhopal',
+    'Visakhapatnam',
+    'Pimpri-Chinchwad',
+    'Patna',
+    'Vadodara',
+    'Ghaziabad',
+    'Ludhiana',
+    'Agra',
+    'Nashik',
+    'Ranchi',
+    'Faridabad',
+    'Meerut',
+    'Rajkot',
+    'Kalyan-Dombivali',
+    'Vasai-Virar',
+    'Varanasi',
+    'Srinagar',
+    'Aurangabad',
+    'Dhanbad',
+    'Amritsar',
+    'Navi Mumbai',
+    'Allahabad',
+    'Ranchi',
+    'Howrah',
     'Coimbatore',
+    'Jabalpur',
+    'Gwalior',
+    'Vijayawada',
+    'Jodhpur',
     'Madurai',
-    'Tiruchirappalli',
-    'Salem',
-    'Tirunelveli',
+    'Raipur',
+    'Kota',
+    'Guwahati',
   ];
 
   String fullName = '';
@@ -75,19 +123,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'selectedCity': selectedCity,
       'personName': personName,
       'personMobileNo': personMobileNo,
+      'mpin': '000000',
     };
 
     String jsonString = json.encode(jsonData);
     print('Sending data to server...');
     print('JSON Data: $jsonString');
-
-    // Navigate to the login screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SignUpScreen(),
-      ),
+    final response = await http.post(
+      Uri.parse(
+          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/create'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonString,
     );
+
+    if (response.statusCode == 200) {
+      print('Server response: ${response.body}');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+    } else {
+      print(
+          'Failed to send data to the server. Status code: ${response.statusCode}');
+    }
   }
 
   @override
@@ -124,7 +186,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: DropdownButtonFormField(
                 decoration: InputDecoration(labelText: 'City'),
                 value: selectedCity,
-                items: citiesInTamilNadu.map((city) {
+                items: majorCitiesInIndia.map((city) {
                   return DropdownMenuItem(
                     value: city,
                     child: Text(city),
@@ -163,7 +225,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ElevatedButton(
               onPressed: areAllFieldsFilled
                   ? () {
-                      // Call the function to send data to the server
                       _sendDataToServer();
                     }
                   : null, // Disable the button if not all fields are filled
