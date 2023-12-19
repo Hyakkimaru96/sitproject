@@ -1,78 +1,112 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper.internal();
+  static Database? _database;
+  static const String tableName = 'users';
+  DatabaseHelper._privateConstructor();
+  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
-  factory DatabaseHelper() => _instance;
-
-  static Database? _db;
-
-  Future<Database> get db async {
-    if (_db != null) {
-      return _db!;
+  Future<Database> get database async {
+    if (_database != null) {
+      return _database!;
     }
-    _db = await initDb();
-    return _db!;
+
+    _database = await _initDatabase();
+    return _database!;
   }
 
-  DatabaseHelper.internal();
-
-  Future<Database> initDb() async {
-    // Initialize the databaseFactoryFfi
-    databaseFactory = databaseFactoryFfi;
-
+  Future<Database> _initDatabase() async {
     String databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, 'your_database.db');
+    String path = join(databasesPath, 'startup_ignition.db');
 
-    // Delete the database if it already exists (for testing purposes)
-    // await deleteDatabase(path);
-
-    var db = await openDatabase(path, version: 1, onCreate: _onCreate);
-    return db;
+    return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
-  void _onCreate(Database db, int version) async {
+  Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE user (
+      CREATE TABLE users (
         id INTEGER PRIMARY KEY,
-        name TEXT,
         email TEXT,
+        name TEXT,
         phone TEXT,
         city TEXT,
-        referredBy TEXT,
         personName TEXT,
-        personMobile TEXT,
-        professionalIntro TEXT,
-        website TEXT
+        personPhone TEXT,
+        mpin TEXT,
+        is_verified INTEGER
       )
     ''');
   }
 
-  Future<int> insertUser(Map<String, dynamic> userData) async {
-    var dbClient = await db;
-    return await dbClient.insert('user', userData);
+  Future<void> deleteUserTable() async {
+    Database db = await instance.database;
+    await db.execute('DELETE FROM $tableName where id =1');
   }
 
-  Future<List<Map<String, dynamic>>> getUsers() async {
-    var dbClient = await db;
-    return await dbClient.query('user');
+  Future<int?> getUserDataCount() async {
+    final db = await instance.database;
+    int? count =
+        Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users'));
+    return count;
   }
 
-  Future<Map<String, dynamic>> getUserData() async {
-    final dbClient = await db;
-    final List<Map<String, dynamic>> maps = await dbClient.query('user');
-    if (maps.isNotEmpty) {
-      return maps.first;
-    } else {
-      throw Exception('User data not found');
+  Future<void> deleteUser() async {
+    Database db = await instance.database;
+    db.delete(tableName, where: 'id=?', whereArgs: [1]);
+  }
+
+  Future<void> updateUserData(int userId, Map<String, dynamic> userData) async {
+    Database db = await instance.database;
+
+    await db.update(
+      tableName,
+      userData,
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUserData() async {
+    Database db = await instance.database;
+    return await db.query(tableName);
+  }
+
+  Future<void> updateIsVerifiedStatus(String email, bool isVerified) async {
+    try {
+      Database db = await instance.database;
+      await db.update(
+        'users',
+        {'is_verified': isVerified ? 1 : 0},
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+      print('Updated is_verified status for email: $email to $isVerified');
+    } catch (error) {
+      print('Error updating is_verified status: $error');
     }
   }
 
-  Future<void> updateUserData(Map<String, dynamic> userData) async {
-    final dbClient = await db;
-    await dbClient.update('user', userData);
+  Future<int> insertUserData({
+    required String email,
+    required String name,
+    required String phone,
+    required String city,
+    required String personName,
+    required String personPhone,
+    required bool isVerified,
+  }) async {
+    Database db = await database;
+    Map<String, dynamic> userData = {
+      'email': email,
+      'name': name,
+      'phone': phone,
+      'city': city,
+      'personName': personName,
+      'personPhone': personPhone,
+      'is_verified': isVerified ? 1 : 0,
+    };
+    return await db.insert('users', userData);
   }
 }
