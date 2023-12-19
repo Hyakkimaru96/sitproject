@@ -42,12 +42,13 @@ dependencies:
   open_filex: ^4.3.4
   mime: ^1.0.4
   image_picker: ^1.0.4
+  fluttertoast: ^8.0.8
   file_picker: ^6.1.1
   flutter_chat_types: ^3.6.2
+  sqflite_common_ffi: ^2.3.1
   animations: ^2.0.8
   sqflite: ^2.3.0
   path: ^1.8.0
-  sqflite_common_ffi: ^2.3.0+4
 
 dev_dependencies:
   flutter_test:
