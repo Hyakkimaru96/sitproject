@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/login.dart';
-import 'package:sit/Auth%20flow/login.dart';
 import 'package:sit/Utilities/global.dart';
-import 'package:http/http.dart' as http;
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -82,27 +80,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     String jsonString = json.encode(jsonData);
     print('Sending data to server...');
     print('JSON Data: $jsonString');
-    final response = await http.post(
-      Uri.parse(
-          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/create'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonString,
-    );
 
-    if (response.statusCode == 200) {
-      print('Server response: ${response.body}');
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SetMasterpinScreen(),
-        ),
-      );
-    } else {
-      print(
-          'Failed to send data to the server. Status code: ${response.statusCode}');
-    }
+    // Navigate to the login screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SignUpScreen(),
+      ),
+    );
   }
 
   @override
