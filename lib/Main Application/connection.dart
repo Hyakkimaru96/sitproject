@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:sit/Main%20Application/chat.dart';
 import 'package:sit/Utilities/global.dart';
+import 'package:sit/Utilities/Database_helper.dart';
 
 class ConnectionsPage extends StatefulWidget {
   @override
@@ -11,30 +12,101 @@ class ConnectionsPage extends StatefulWidget {
 
 class _ConnectionsPageState extends State<ConnectionsPage> {
   late Future<List<User>> _usersFuture;
-  List<User> users = [
-    User(id: '1', name: 'Johnathan', isFollowing: false),
-    User(id: '2', name: 'Stacy', isFollowing: false),
-    User(id: '3', name: 'John', isFollowing: false),
-    User(id: '4', name: 'Stacy', isFollowing: false),
-    User(id: '5', name: 'Ram', isFollowing: false),
-    User(id: '6', name: 'Shyam', isFollowing: false),
-    // Add more users as needed
-  ];
-
+  late List<bool> isFollowingList;
   @override
   void initState() {
     super.initState();
+    isFollowingList = [];
     _usersFuture = fetchUsers();
   }
 
+  void unfollowUser(String userEmail, int index) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/unfollow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
+      );
+      if (response.statusCode == 200 &&
+          response.body == 'Unfollowed Successfully!!') {
+        setState(() {
+          isFollowingList[index] = false;
+        });
+      } else {
+        print(response.body);
+        print('Failed to unfollow user. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error unfollowing user: $error');
+    }
+  }
+
+  void followUser(String userEmail, int index) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/follow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
+      );
+      if (response.statusCode == 200 &&
+          response.body == 'Followed Successfully!!') {
+        setState(() {
+          isFollowingList[index] = true;
+        });
+      } else {
+        print(response.body);
+        print('Failed to follow user. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error following user: $error');
+    }
+  }
+
   Future<List<User>> fetchUsers() async {
-    // Simulating fetching users from a server, replace this with your actual implementation
-    await Future.delayed(Duration(milliseconds: 100));
-    return [
-      User(id: '1', name: 'User 1', isFollowing: false),
-      User(id: '2', name: 'User 2', isFollowing: true),
-      // Add more users as needed
-    ];
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+
+    // Extract the email from local data
+    String localEmail = allUserData.first['email'];
+
+    final fresponse = await http.post(
+      Uri.parse(
+          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/fetchfollowings'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': localEmail}),
+    );
+    List<String> followingEmails = [];
+    if (fresponse.statusCode == 200 && fresponse.body != "") {
+      followingEmails = List<String>.from(json.decode(fresponse.body));
+    }
+    print(followingEmails);
+    final response = await http.get(Uri.parse(
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/getusers'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+
+      List<User> userList = jsonList
+          .map((json) => User.fromJson(json))
+          .where((user) =>
+              user.email != localEmail && !followingEmails.contains(user.email))
+          .toList();
+
+      return userList;
+    } else {
+      throw Exception('Failed to load users');
+    }
   }
 
   @override
@@ -72,40 +144,48 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                     child: Text('No users available.'),
                   );
                 } else {
-                  // Data is loaded successfully, build the user list
+                  if (isFollowingList.isEmpty) {
+                    isFollowingList = List.filled(snapshot.data!.length, false);
+                  }
                   return ListView.builder(
-                    itemCount: users.length,
+                    itemCount: snapshot.data!.length,
                     itemBuilder: (context, index) {
-                      final user = users[index];
+                      final user = snapshot.data![index];
                       return ListTile(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0), // Adjust padding as needed
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12.0),
                         title: Text(
                           user.name,
-                          style: TextStyle(fontSize: 18.0), // Increase the font size as needed
+                          style: TextStyle(fontSize: 18.0),
                         ),
                         leading: CircleAvatar(
-                          radius: 28.0, // Increase the radius as needed
-                          child: Icon(Icons.person, size: 32.0), // Adjust size as needed
+                          radius: 28.0,
+                          child: Icon(Icons.person, size: 32.0),
                         ),
                         onTap: () {
-                    // Navigate to the profile editor page when ListTile is pressed
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileEditor(
-                          name: user.name,
-                          email: 'example@email.com', // Provide user email
-                          professionalIntro: 'Professional intro text...',
-                          website: 'https://www.example.com',
-                        ),
-                      ),
-                    );
-                  },
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfileEditor(
+                                name: user.name,
+                                email: 'example@email.com',
+                                professionalIntro: 'Professional intro text...',
+                                website: 'https://www.example.com',
+                              ),
+                            ),
+                          );
+                        },
                         trailing: ElevatedButton(
                           onPressed: () {
-                            _handleFollow(user);
+                            if (isFollowingList[index]) {
+                              unfollowUser(user.email, index);
+                            } else {
+                              followUser(user.email, index);
+                            }
                           },
-                          child: Text(user.isFollowing ? 'Followed' : 'Follow'),
+                          child: Text(
+                            isFollowingList[index] ? 'Unfollow' : 'Follow',
+                          ),
                         ),
                       );
                     },
@@ -118,25 +198,23 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       ),
     );
   }
-
-  void _handleFollow(User user) {
-    // Handle the follow button click
-    setState(() {
-      user.isFollowing = !user.isFollowing;
-    });
-  }
 }
 
 class User {
-  final String id;
+  final String email;
   final String name;
-  bool isFollowing;
 
   User({
-    required this.id,
+    required this.email,
     required this.name,
-    required this.isFollowing,
   });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      email: json['email'] ?? '',
+      name: json['name'] ?? '',
+    );
+  }
 }
 
 class ProfileEditor extends StatefulWidget {
