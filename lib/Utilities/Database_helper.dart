@@ -88,12 +88,28 @@ class DatabaseHelper {
     }
   }
 
+  Future<void> updatemPin(String email, String mpin) async {
+    try {
+      Database db = await instance.database;
+      await db.update(
+        'users',
+        {'mpin': mpin},
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+      print('Updated is_verified status for email: $email to $mpin');
+    } catch (error) {
+      print('Error updating is_verified status: $error');
+    }
+  }
+
   Future<int> insertUserData({
     required String email,
     required String name,
     required String phone,
     required String city,
     required String personName,
+    required String mpin,
     required String personPhone,
     required bool isVerified,
   }) async {
@@ -105,6 +121,7 @@ class DatabaseHelper {
       'city': city,
       'personName': personName,
       'personPhone': personPhone,
+      'mpin': mpin,
       'is_verified': isVerified ? 1 : 0,
     };
     return await db.insert('users', userData);
