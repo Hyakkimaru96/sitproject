@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sit/Auth%20flow/login.dart';
 import 'package:sit/Main%20Application/dashboard.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:http/http.dart' as http;
@@ -72,7 +73,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     .updateIsVerifiedStatus(email, _isVerified);
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => Dashboard()),
+                  MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
                 );
               }
             } else {
