@@ -3,11 +3,179 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:sit/Auth%20Flow/login.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sit/Main%20Application/dashboard.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:sit/Auth%20flow/verify.dart';
 import 'package:sit/Utilities/global.dart';
+import 'package:sit/Utilities/firebase_options.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  int userDataCount = 0;
+  int _completedSpins = 0;
+  int _desiredSpins = 5;
+  double _startingSize = 0.25;
+  double _endingSize = 0.50;
+
+  Future<void> getUserDataCount() async {
+    try {
+      int? count = await DatabaseHelper.instance.getUserDataCount();
+      setState(() {
+        userDataCount = count ?? 0;
+      });
+
+      if (userDataCount == 1) {
+        await DatabaseHelper.instance.database;
+        List<Map<String, dynamic>> allUserData =
+            await DatabaseHelper.instance.getAllUserData();
+        for (var userData in allUserData) {
+          String email = userData['email'];
+          String mpin = userData['mpin'];
+          String apiUrl =
+              'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/check_verified';
+          Map<String, String> headers = {'Content-Type': 'application/json'};
+          Map<String, dynamic> body = {'email': email};
+          try {
+            http.Response response = await http.post(
+              Uri.parse(apiUrl),
+              headers: headers,
+              body: jsonEncode(body),
+            );
+
+            if (response.statusCode == 200) {
+              print('Backend response: ${response.body}');
+
+              bool isVerified = response.body == 'true';
+
+              await DatabaseHelper.instance
+                  .updateIsVerifiedStatus(email, isVerified);
+
+              if (isVerified && mpin != "0000") {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => Dashboard()),
+                );
+              } else if (mpin == "0000") {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
+                );
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => VerificationScreen()),
+                );
+              }
+            } else {
+              print('Backend error: ${response.statusCode}, ${response.body}');
+            }
+          } catch (e) {
+            print('Error during HTTP request: $e');
+          }
+        }
+      } else if (userDataCount == 0) {
+        Timer(Duration(seconds: 2), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SignUpScreen()),
+          );
+        });
+      } else {
+        Fluttertoast.showToast(
+          msg:
+              'Multiple Users found!! You are not allowed to proceed further.. Please Clear the data and restart the application',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        Timer(Duration(seconds: 3), () {
+          // Exit the app
+          SystemNavigator.pop();
+        });
+      }
+    } catch (error) {
+      print('Error fetching user data count: $error');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getUserDataCount();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1000),
+    );
+
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _completedSpins++;
+          if (_completedSpins >= _desiredSpins) {
+            _controller.stop();
+            Timer(Duration(seconds: 2), () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SignUpScreen()),
+              );
+            });
+          } else {
+            _controller.reset();
+            _startingSize = _endingSize;
+            _endingSize += 0.25;
+            _controller.forward();
+          }
+        }
+      });
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            double scaleFactor = _startingSize +
+                (_endingSize - _startingSize) * _controller.value;
+            return Transform.scale(
+              scale: scaleFactor,
+              child: RotationTransition(
+                turns: _controller,
+                child: Image(
+                  image: AssetImage('assets/images/ignition.jpg'),
+                  width: 200,
+                  height: 200,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -111,6 +279,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _sendDataToServer() async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    print("Token is " + fcmToken!);
+    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
+      print("Token is " + fcmToken);
+    }).onError((err) {
+      print("Error is " + err);
+    });
     fullName = fullNameController.text;
     emailAddress = emailController.text;
     mobileNo = mobileNoController.text;
@@ -123,7 +302,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'selectedCity': selectedCity,
       'personName': personName,
       'personMobileNo': personMobileNo,
-      'mpin': '000000',
+      'mpin': '0000',
+      'fcmtoken': fcmToken,
     };
 
     String jsonString = json.encode(jsonData);
@@ -138,17 +318,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
       body: jsonString,
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 &&
+        response.body == "Successfully Registered And mail sent!!!") {
+      bool _isVerified = false;
+      try {
+        int rowId = await DatabaseHelper.instance.insertUserData(
+          email: emailAddress,
+          name: fullName,
+          phone: mobileNo,
+          city: selectedCity,
+          personName: personName,
+          personPhone: personMobileNo,
+          mpin: '0000',
+          isVerified: _isVerified,
+        );
+        print('Data inserted with row id: $rowId');
+      } catch (error) {
+        print('Error inserting data: $error');
+      }
       print('Server response: ${response.body}');
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => LoginScreen(),
+          builder: (context) => VerificationScreen(),
         ),
       );
     } else {
       print(
           'Failed to send data to the server. Status code: ${response.statusCode}');
+      Fluttertoast.showToast(
+        msg: response.body,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
     }
   }
 
@@ -240,7 +446,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Future.delayed(Duration(seconds: 1), () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
                   );
                 });
               },
