@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sit/Main%20application/chat.dart';
-import 'package:sit/Main%20application/dashboard.dart';
-import 'package:sit/Main%20application/post.dart';
-import 'package:sit/profile.dart';
-
-import 'Auth Flow/signup.dart';
-import 'Main application/connection.dart';
+import 'package:sit/Auth%20flow/signup.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: SignUpScreen(),
+      home: SplashScreen(),
     );
   }
 }
