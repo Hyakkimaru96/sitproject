@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:sit/Utilities/global.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:video_player/video_player.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:sit/Utilities/Database_helper.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -22,7 +25,7 @@ class _PostPageState extends State<PostPage> {
   void initState() {
     super.initState();
 
-    // Adding sample posts
+    fetchPosts();
     posts.addAll([
       {
         'title': 'Exploring Nature',
@@ -30,9 +33,6 @@ class _PostPageState extends State<PostPage> {
         'photos': [
           'https://picsum.photos/250?image=101',
           'https://picsum.photos/250?image=102',
-        ],
-        'videos': [
-          'https://www.example.com/nature_video.mp4',
         ],
         'connections': [
           {
@@ -91,6 +91,33 @@ class _PostPageState extends State<PostPage> {
         ],
       },
     ]);
+  }
+
+  Future<void> fetchPosts() async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    final String apiUrl =
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/getPosts';
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      body: {'email': localEmail},
+    );
+
+    if (response.statusCode == 200) {
+      List<Map<String, dynamic>> data =
+          List<Map<String, dynamic>>.from(json.decode(response.body));
+      Map<String, dynamic> firstItem = data.isNotEmpty ? data[0] : {};
+      print("Title: ${firstItem['title']}");
+      print("Description: ${firstItem['description']}");
+      print("Images: ${firstItem['images']}");
+      print("Likes: ${firstItem['likes']}");
+      print("Comments: ${firstItem['comments']}");
+    } else {
+      print('Error Response: ${response.body}');
+    }
   }
 
   @override
@@ -430,7 +457,6 @@ class _AddPostPageState extends State<AddPostPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   List<XFile>? _selectedPhotos;
-  List<XFile>? _selectedVideos;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -464,10 +490,6 @@ class _AddPostPageState extends State<AddPostPage> {
                     height: 16,
                   ),
                   _buildPhotoPicker(context),
-                  SizedBox(
-                    height: 16,
-                  ),
-                  _buildVideoPicker(context),
                 ],
               ),
             ),
@@ -511,49 +533,21 @@ class _AddPostPageState extends State<AddPostPage> {
     );
   }
 
-  Widget _buildVideoPicker(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ElevatedButton(
-          onPressed: () async {
-            List<XFile>? videos = await _pickVideos();
-            setState(() {
-              _selectedVideos = videos;
-            });
-          },
-          child: Text('Pick Videos'),
-        ),
-        if (_selectedVideos != null && _selectedVideos!.isNotEmpty)
-          _buildVideoPreview(_selectedVideos!),
-      ],
-    );
-  }
-
   Widget _buildImagePreview(List<XFile> images) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 8),
         Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        Row(
-          children: images.map((image) => _buildImageItem(image.path)).toList(),
-        ),
-        SizedBox(height: 8),
-      ],
-    );
-  }
-
-  Widget _buildVideoPreview(List<XFile> videos) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 8),
-        Text('Selected Videos:', style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        Row(
-          children: videos.map((video) => _buildVideoItem(video.path)).toList(),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: images.length,
+            itemBuilder: (context, index) {
+              return _buildImageItem(images[index].path);
+            },
+          ),
         ),
         SizedBox(height: 8),
       ],
@@ -563,19 +557,13 @@ class _AddPostPageState extends State<AddPostPage> {
   Widget _buildImageItem(String imagePath) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
-      child: Image.file(
-        File(imagePath),
-        width: 80,
-        height: 80,
-        fit: BoxFit.cover,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8.0),
+        child: Image.file(
+          File(imagePath),
+          fit: BoxFit.fill,
+        ),
       ),
-    );
-  }
-
-  Widget _buildVideoItem(String videoPath) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: VideoPlayerWidget(videoPath: videoPath),
     );
   }
 
@@ -595,80 +583,62 @@ class _AddPostPageState extends State<AddPostPage> {
         XFile? video =
             await _imagePicker.pickVideo(source: ImageSource.gallery);
         if (video == null) {
+          // If the user cancels the video selection, exit the loop
           break;
         }
         videos.add(video);
       }
-      return videos;
+      return videos.isNotEmpty
+          ? videos
+          : null; // Return null if no videos were selected
     } catch (e) {
       print('Error picking videos: $e');
       return null;
     }
   }
 
-  void _addPost() {
+  void _addPost() async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
     final newPost = {
+      'email': localEmail,
       'title': _titleController.text,
       'description': _descriptionController.text,
       'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
-      'videos': _selectedVideos?.map((file) => file.path).toList() ?? [],
     };
+    try {
+      var request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+              'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/upload'));
+      newPost.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+      if (_selectedPhotos != null) {
+        for (var i = 0; i < _selectedPhotos!.length; i++) {
+          var file = await http.MultipartFile.fromPath(
+            'photos',
+            _selectedPhotos![i].path,
+          );
+          request.files.add(file);
+        }
+      }
 
+      // Send the request
+      var response = await http.Response.fromStream(await request.send());
+
+      // Handle the response as needed
+      print('Server Response: ${response.body}');
+
+      // Notify the parent about the new post
+      widget.onPostAdded(newPost);
+    } catch (e) {
+      print('Error uploading images: $e');
+    }
     // Handle the new post, you can use this data as needed.
     print('New Post: $newPost');
-  }
-}
-
-class VideoPlayerWidget extends StatefulWidget {
-  final String videoPath;
-
-  VideoPlayerWidget({required this.videoPath});
-
-  @override
-  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
-}
-
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late VideoPlayerController _videoController;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideoController();
-  }
-
-  void _initializeVideoController() {
-    _videoController = VideoPlayerController.file(File(widget.videoPath))
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-
-    _videoController.addListener(() {
-      if (!mounted) {
-        return;
-      }
-      if (_videoController.value.hasError) {
-        print("Error: ${_videoController.value.errorDescription}");
-        // Handle error, e.g., show an error message
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _videoController.value.isInitialized
-        ? AspectRatio(
-            aspectRatio: _videoController.value.aspectRatio,
-            child: VideoPlayer(_videoController),
-          )
-        : Center(child: CircularProgressIndicator());
-  }
-
-  @override
-  void dispose() {
-    _videoController.dispose();
-    super.dispose();
+    widget.onPostAdded(newPost); // Notify parent about the new post
   }
 }
