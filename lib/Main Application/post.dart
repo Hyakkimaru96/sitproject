@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:sit/Utilities/global.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -419,8 +420,9 @@ class AddPostPage extends StatefulWidget {
 class _AddPostPageState extends State<AddPostPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _photosController = TextEditingController();
-  final TextEditingController _videosController = TextEditingController();
+  List<XFile>? _photos;
+  List<XFile>? _videos;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -449,10 +451,14 @@ class _AddPostPageState extends State<AddPostPage> {
                   textFieldPrettier(context, _titleController, 'Name'),
                   textFieldPrettier(
                       context, _descriptionController, 'Description'),
-                  textFieldPrettier(
-                      context, _photosController, 'Photos (comma-separated)'),
-                  textFieldPrettier(
-                      context, _videosController, 'Videos (comma-separated)'),
+                  SizedBox(
+                    height: 16,
+                  ),
+                  _buildPhotoPicker(context),
+                  SizedBox(
+                    height: 16,
+                  ),
+                  _buildVideoPicker(context),
                 ],
               ),
             ),
@@ -469,14 +475,63 @@ class _AddPostPageState extends State<AddPostPage> {
     );
   }
 
+  Widget _buildPhotoPicker(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        List<XFile>? images = await _pickImages();
+        setState(() {
+          _photos = images;
+        });
+      },
+      child: Text('Pick Photos'),
+    );
+  }
+
+  Widget _buildVideoPicker(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        List<XFile>? videos = await _pickVideos();
+        setState(() {
+          _videos = videos;
+        });
+      },
+      child: Text('Pick Videos'),
+    );
+  }
+
+  Future<List<XFile>?> _pickImages() async {
+    try {
+      return await _imagePicker.pickMultiImage();
+    } catch (e) {
+      print('Error picking images: $e');
+      return null;
+    }
+  }
+
+  Future<List<XFile>?> _pickVideos() async {
+    List<XFile> videos = [];
+    try {
+      // Loop to pick multiple videos
+      while (true) {
+        XFile? video = await _imagePicker.pickVideo(source: ImageSource.gallery);
+        if (video == null) {
+          break; // No video selected, exit the loop
+        }
+        videos.add(video);
+      }
+      return videos;
+    } catch (e) {
+      print('Error picking videos: $e');
+      return null;
+    }
+  }
+
   void _addPost() {
     final newPost = {
       'title': _titleController.text,
       'description': _descriptionController.text,
-      'photos': [
-        'https://picsum.photos/200/300?random=1'
-      ], //_photosController.text.split(',').map((e) => e.trim()).toList(),
-      'videos': _videosController.text.split(',').map((e) => e.trim()).toList(),
+      'photos': _photos?.map((file) => file.path).toList() ?? [],
+      'videos': _videos?.map((file) => file.path).toList() ?? [],
     };
 
     widget.onPostAdded(newPost);
