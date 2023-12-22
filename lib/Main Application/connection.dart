@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:sit/Main%20Application/chat.dart';
 import 'package:sit/Utilities/global.dart';
 import 'package:sit/Utilities/Database_helper.dart';
+import 'package:http/http.dart' as http;
 
 class ConnectionsPage extends StatefulWidget {
   @override
@@ -330,6 +330,14 @@ class _ProfileEditorState extends State<ProfileEditor> {
                     context, professionalIntroController, 'Professional Intro'),
                 textFieldPrettier(context, websiteController,
                     'Websites / Social Media Handle Link'),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Handle the "Connections" button press
+                    print('Connections button pressed');
+                  },
+                  child: Text('Connections'),
+                ),
               ],
             ),
           ),
