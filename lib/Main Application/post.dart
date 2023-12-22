@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:sit/Utilities/global.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
+import 'dart:io';
 
 void main() {
   runApp(MaterialApp(
@@ -208,9 +210,15 @@ class FullPostDetailsPage extends StatefulWidget {
 
 class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
   List<Comment> comments = [
-    Comment(text: 'Comment 1', timestamp: DateTime.now().subtract(Duration(minutes: 15))),
-    Comment(text: 'Comment 2', timestamp: DateTime.now().subtract(Duration(minutes: 7))),
-    Comment(text: 'Comment 3', timestamp: DateTime.now().subtract(Duration(minutes: 2))),
+    Comment(
+        text: 'Comment 1',
+        timestamp: DateTime.now().subtract(Duration(minutes: 15))),
+    Comment(
+        text: 'Comment 2',
+        timestamp: DateTime.now().subtract(Duration(minutes: 7))),
+    Comment(
+        text: 'Comment 3',
+        timestamp: DateTime.now().subtract(Duration(minutes: 2))),
   ];
 
   bool isLiked = false; // New variable to track whether the post is liked
@@ -252,7 +260,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                 Column(
                   children: List.generate(
                     widget.post['photos'].length,
-                        (index) => Padding(
+                    (index) => Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Image.network(
                         widget.post['photos'][index],
@@ -261,7 +269,8 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                     ),
                   ),
                 ),
-              SizedBox(height: 16), // Add some space between photos and comments
+              SizedBox(
+                  height: 16), // Add some space between photos and comments
 
               // Display Like button
               Row(
@@ -348,7 +357,8 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                   if (newComment.isNotEmpty) {
                     // Update the state and add the new comment
                     setState(() {
-                      comments.insert(0, Comment(text: newComment, timestamp: DateTime.now()));
+                      comments.insert(0,
+                          Comment(text: newComment, timestamp: DateTime.now()));
                     });
 
                     // Close the dialog
@@ -369,15 +379,14 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
   }
 }
 
-
 class Comment {
   final String text;
   final DateTime timestamp;
 
   Comment({required this.text, required this.timestamp});
 }
-  
-  /*Widget _buildSection(String title, List<Map<String, dynamic>> data) {
+
+/*Widget _buildSection(String title, List<Map<String, dynamic>> data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -420,8 +429,8 @@ class AddPostPage extends StatefulWidget {
 class _AddPostPageState extends State<AddPostPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  List<XFile>? _photos;
-  List<XFile>? _videos;
+  List<XFile>? _selectedPhotos;
+  List<XFile>? _selectedVideos;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -448,8 +457,8 @@ class _AddPostPageState extends State<AddPostPage> {
                           fontWeight: FontWeight.w600),
                     ),
                   ),
-                  textFieldPrettier(context, _titleController, 'Name'),
-                  textFieldPrettier(
+                  _buildTextField(context, _titleController, 'Name'),
+                  _buildTextField(
                       context, _descriptionController, 'Description'),
                   SizedBox(
                     height: 16,
@@ -475,27 +484,98 @@ class _AddPostPageState extends State<AddPostPage> {
     );
   }
 
+  Widget _buildTextField(
+      BuildContext context, TextEditingController controller, String hintText) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: hintText),
+    );
+  }
+
   Widget _buildPhotoPicker(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
-        List<XFile>? images = await _pickImages();
-        setState(() {
-          _photos = images;
-        });
-      },
-      child: Text('Pick Photos'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          onPressed: () async {
+            List<XFile>? images = await _pickImages();
+            setState(() {
+              _selectedPhotos = images;
+            });
+          },
+          child: Text('Pick Photos'),
+        ),
+        if (_selectedPhotos != null && _selectedPhotos!.isNotEmpty)
+          _buildImagePreview(_selectedPhotos!),
+      ],
     );
   }
 
   Widget _buildVideoPicker(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
-        List<XFile>? videos = await _pickVideos();
-        setState(() {
-          _videos = videos;
-        });
-      },
-      child: Text('Pick Videos'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          onPressed: () async {
+            List<XFile>? videos = await _pickVideos();
+            setState(() {
+              _selectedVideos = videos;
+            });
+          },
+          child: Text('Pick Videos'),
+        ),
+        if (_selectedVideos != null && _selectedVideos!.isNotEmpty)
+          _buildVideoPreview(_selectedVideos!),
+      ],
+    );
+  }
+
+  Widget _buildImagePreview(List<XFile> images) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 8),
+        Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 8),
+        Row(
+          children: images.map((image) => _buildImageItem(image.path)).toList(),
+        ),
+        SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildVideoPreview(List<XFile> videos) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 8),
+        Text('Selected Videos:', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 8),
+        Row(
+          children: videos.map((video) => _buildVideoItem(video.path)).toList(),
+        ),
+        SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildImageItem(String imagePath) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Image.file(
+        File(imagePath),
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildVideoItem(String videoPath) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: VideoPlayerWidget(videoPath: videoPath),
     );
   }
 
@@ -511,11 +591,11 @@ class _AddPostPageState extends State<AddPostPage> {
   Future<List<XFile>?> _pickVideos() async {
     List<XFile> videos = [];
     try {
-      // Loop to pick multiple videos
       while (true) {
-        XFile? video = await _imagePicker.pickVideo(source: ImageSource.gallery);
+        XFile? video =
+            await _imagePicker.pickVideo(source: ImageSource.gallery);
         if (video == null) {
-          break; // No video selected, exit the loop
+          break;
         }
         videos.add(video);
       }
@@ -530,10 +610,65 @@ class _AddPostPageState extends State<AddPostPage> {
     final newPost = {
       'title': _titleController.text,
       'description': _descriptionController.text,
-      'photos': _photos?.map((file) => file.path).toList() ?? [],
-      'videos': _videos?.map((file) => file.path).toList() ?? [],
+      'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
+      'videos': _selectedVideos?.map((file) => file.path).toList() ?? [],
     };
 
-    widget.onPostAdded(newPost);
+    // Handle the new post, you can use this data as needed.
+    print('New Post: $newPost');
+  }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String videoPath;
+
+  VideoPlayerWidget({required this.videoPath});
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _videoController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideoController();
+  }
+
+  void _initializeVideoController() {
+    _videoController = VideoPlayerController.file(File(widget.videoPath))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+
+    _videoController.addListener(() {
+      if (!mounted) {
+        return;
+      }
+      if (_videoController.value.hasError) {
+        print("Error: ${_videoController.value.errorDescription}");
+        // Handle error, e.g., show an error message
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _videoController.value.isInitialized
+        ? AspectRatio(
+            aspectRatio: _videoController.value.aspectRatio,
+            child: VideoPlayer(_videoController),
+          )
+        : Center(child: CircularProgressIndicator());
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    super.dispose();
   }
 }
