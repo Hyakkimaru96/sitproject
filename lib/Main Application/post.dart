@@ -146,7 +146,16 @@ class _PostPageState extends State<PostPage> {
                 return PostPreviewCard(
                   title: post['title'],
                   description: post['description'],
-                  url: post['photos'][0],
+                  imageUrls: (post['photos'] as List<dynamic>).map<String>((photo) {
+  if (photo is String) {
+    if (photo.startsWith('http')) {
+      return photo;
+    } else {
+      return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+    }
+  }
+  return ''; // or handle the case where photo is not a String
+})?.toList() ?? [],
                   onTap: () {
                     Navigator.push(
                       context,
@@ -186,14 +195,15 @@ class _PostPageState extends State<PostPage> {
 class PostPreviewCard extends StatelessWidget {
   final String title;
   final String description;
-  final String url;
+  final List<String> imageUrls;
   final VoidCallback onTap;
 
-  PostPreviewCard(
-      {required this.title,
-      required this.description,
-      required this.onTap,
-      required this.url});
+  PostPreviewCard({
+    required this.title,
+    required this.description,
+    required this.imageUrls,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +224,7 @@ class PostPreviewCard extends StatelessWidget {
                 height: 300,
                 width: double.infinity,
                 child: Image.network(
-                  url,
+                  imageUrls.isNotEmpty ? imageUrls[0] : '', // Show only the first image
                   fit: BoxFit.cover,
                 ),
               ),
@@ -248,17 +258,18 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         timestamp: DateTime.now().subtract(Duration(minutes: 2))),
   ];
 
-  bool isLiked = false; // New variable to track whether the post is liked
+  bool isLiked = false;
 
   @override
   Widget build(BuildContext context) {
+    List<String> imageUrls = widget.post['images']?.cast<String>() ?? [];
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Post Details'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            // Navigate back to the previous screen
             Navigator.pop(context);
           },
         ),
@@ -283,14 +294,14 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-              if (widget.post['photos'] != null)
+              if (widget.post['images'] != null)
                 Column(
                   children: List.generate(
-                    widget.post['photos'].length,
+                    imageUrls.length,
                     (index) => Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Image.network(
-                        widget.post['photos'][index],
+                        imageUrls[index],
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -308,7 +319,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       color: isLiked ? Colors.red : null,
                     ),
                     onPressed: () {
-                      // Toggle the like status
                       setState(() {
                         isLiked = !isLiked;
                       });
@@ -331,7 +341,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 8),
-                    // Display comments using ListView.builder
                     ListView.builder(
                       shrinkWrap: true,
                       itemCount: comments.length,
@@ -348,7 +357,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                 ),
               ElevatedButton(
                 onPressed: () {
-                  // Handle button click
                   _showCommentDialog(context);
                 },
                 child: Text('Add Comment'),
@@ -370,25 +378,20 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           title: Text('Add a Comment'),
           content: Column(
             children: [
-              // Add input fields or any other widgets for the comment
               TextField(
                 controller: commentController,
                 decoration: InputDecoration(labelText: 'Your Comment'),
-                // Add controller or onChanged callback for handling user input
               ),
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  // Handle the comment submission
                   String newComment = commentController.text.trim();
                   if (newComment.isNotEmpty) {
-                    // Update the state and add the new comment
                     setState(() {
                       comments.insert(0,
                           Comment(text: newComment, timestamp: DateTime.now()));
                     });
 
-                    // Close the dialog
                     Navigator.pop(context);
                   }
                 },
@@ -405,7 +408,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
     return '${timestamp.hour}:${timestamp.minute} on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
   }
 }
-
 class Comment {
   final String text;
   final DateTime timestamp;
