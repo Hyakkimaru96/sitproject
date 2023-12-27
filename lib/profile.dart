@@ -41,6 +41,19 @@ class _UserProfileState extends State<UserProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        actions: [
+          // Add a logout button in the app bar
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              // Implement the logout functionality here
+              // For example, you can show a confirmation dialog and navigate to the login page
+              _showLogoutConfirmationDialog();
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Toggle edit mode
@@ -53,7 +66,7 @@ class _UserProfileState extends State<UserProfile> {
       body: SingleChildScrollView(
         child: Center(
           child: SafeArea(
-            minimum: EdgeInsets.fromLTRB(16, 8, 8, 16),
+            minimum: EdgeInsets.fromLTRB(16,0, 8, 16),
             child: Column(
               children: [
                 Padding(
@@ -137,6 +150,37 @@ class _UserProfileState extends State<UserProfile> {
           ],
         ),
       ),
+    );
+  }
+
+  // Function to show a confirmation dialog before logging out
+  Future<void> _showLogoutConfirmationDialog() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Close the dialog
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Implement the logout logic, e.g., clear user data and navigate to the login page
+                // Navigator.pushReplacementNamed(context, '/login');
+                // For example, pop to the root screen
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
