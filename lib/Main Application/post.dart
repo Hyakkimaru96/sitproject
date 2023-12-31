@@ -107,16 +107,27 @@ class _PostPageState extends State<PostPage> {
     );
 
     if (response.statusCode == 200) {
-      List<Map<String, dynamic>> data =
-          List<Map<String, dynamic>>.from(json.decode(response.body));
-      Map<String, dynamic> firstItem = data.isNotEmpty ? data[0] : {};
-      print("Title: ${firstItem['title']}");
-      print("Description: ${firstItem['description']}");
-      print("Images: ${firstItem['images']}");
-      print("Likes: ${firstItem['likes']}");
-      print("Comments: ${firstItem['comments']}");
+      Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      if (jsonResponse.containsKey("posts")) {
+        List<dynamic> fetchedPosts = jsonResponse["posts"];
+        print(fetchedPosts);
+
+        setState(() {
+          posts = fetchedPosts.map<Map<String, dynamic>>((post) {
+            return {
+              'title': post['title'],
+              'description': post['description'],
+              'photos': List<String>.from(post['images'] ?? []),
+              'likes': post['likes'] ?? 0,
+              'comments': List<String>.from(post['comments'] ?? []),
+            };
+          }).toList();
+        });
+      } else {
+        print("No posts found in the response.");
+      }
     } else {
-      print('Error Response: ${response.body}');
+      print("Error: ${response.statusCode}");
     }
   }
 
@@ -146,16 +157,18 @@ class _PostPageState extends State<PostPage> {
                 return PostPreviewCard(
                   title: post['title'],
                   description: post['description'],
-                  imageUrls: (post['photos'] as List<dynamic>).map<String>((photo) {
-  if (photo is String) {
-    if (photo.startsWith('http')) {
-      return photo;
-    } else {
-      return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
-    }
-  }
-  return ''; // or handle the case where photo is not a String
-})?.toList() ?? [],
+                  imageUrls:
+                      (post['photos'] as List<dynamic>).map<String>((photo) {
+                            if (photo is String) {
+                              if (photo.startsWith('http')) {
+                                return photo;
+                              } else {
+                                return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+                              }
+                            }
+                            return '';
+                          })?.toList() ??
+                          [],
                   onTap: () {
                     Navigator.push(
                       context,
@@ -224,7 +237,9 @@ class PostPreviewCard extends StatelessWidget {
                 height: 300,
                 width: double.infinity,
                 child: Image.network(
-                  imageUrls.isNotEmpty ? imageUrls[0] : '', // Show only the first image
+                  imageUrls.isNotEmpty
+                      ? imageUrls[0]
+                      : '', // Show only the first image
                   fit: BoxFit.cover,
                 ),
               ),
@@ -408,6 +423,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
     return '${timestamp.hour}:${timestamp.minute} on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
   }
 }
+
 class Comment {
   final String text;
   final DateTime timestamp;
