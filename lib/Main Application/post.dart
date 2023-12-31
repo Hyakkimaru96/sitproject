@@ -24,73 +24,72 @@ class _PostPageState extends State<PostPage> {
   @override
   void initState() {
     super.initState();
-
     fetchPosts();
-    posts.addAll([
-      {
-        'title': 'Exploring Nature',
-        'description': 'A beautiful day spent exploring nature trails.',
-        'photos': [
-          'https://picsum.photos/250?image=101',
-          'https://picsum.photos/250?image=102',
-        ],
-        'connections': [
-          {
-            'response': [
-              {
-                'name': 'Nature Lover',
-                'description': 'Exploring the beauty of nature.',
-                'image': 'https://picsum.photos/250?image=103',
-              }
-            ]
-          }
-        ],
-      },
-      {
-        'title': 'Culinary Delights',
-        'description': 'A culinary adventure trying new dishes and flavors.',
-        'photos': [
-          'https://picsum.photos/250?image=104',
-          'https://picsum.photos/250?image=105',
-        ],
-        'videos': [
-          'https://www.example.com/culinary_video.mp4',
-        ],
-        'follow': [
-          {
-            'response': [
-              {
-                'name': 'Foodie Explorer',
-                'description': 'Exploring the world one dish at a time.',
-                'image': 'https://picsum.photos/250?image=106',
-              }
-            ]
-          }
-        ],
-      },
-      {
-        'title': 'Tech Innovations',
-        'description': 'Discovering the latest tech innovations and gadgets.',
-        'photos': [
-          'https://picsum.photos/250?image=107',
-          'https://picsum.photos/250?image=108',
-        ],
-        'videos': [
-          'https://www.example.com/tech_video.mp4',
-        ],
-        'others': [
-          {
-            'response': [
-              {
-                'name': 'Tech Enthusiast',
-                'description': 'Passionate about cutting-edge technology.',
-                'image': 'https://picsum.photos/250?image=109',
-              }
-            ]
-          }
-        ],
-      },
-    ]);
+    // posts.addAll([
+    //   {
+    //     'title': 'Exploring Nature',
+    //     'description': 'A beautiful day spent exploring nature trails.',
+    //     'photos': [
+    //       'https://picsum.photos/250?image=101',
+    //       'https://picsum.photos/250?image=102',
+    //     ],
+    //     'connections': [
+    //       {
+    //         'response': [
+    //           {
+    //             'name': 'Nature Lover',
+    //             'description': 'Exploring the beauty of nature.',
+    //             'image': 'https://picsum.photos/250?image=103',
+    //           }
+    //         ]
+    //       }
+    //     ],
+    //   },
+    //   {
+    //     'title': 'Culinary Delights',
+    //     'description': 'A culinary adventure trying new dishes and flavors.',
+    //     'photos': [
+    //       'https://picsum.photos/250?image=104',
+    //       'https://picsum.photos/250?image=105',
+    //     ],
+    //     'videos': [
+    //       'https://www.example.com/culinary_video.mp4',
+    //     ],
+    //     'follow': [
+    //       {
+    //         'response': [
+    //           {
+    //             'name': 'Foodie Explorer',
+    //             'description': 'Exploring the world one dish at a time.',
+    //             'image': 'https://picsum.photos/250?image=106',
+    //           }
+    //         ]
+    //       }
+    //     ],
+    //   },
+    //   {
+    //     'title': 'Tech Innovations',
+    //     'description': 'Discovering the latest tech innovations and gadgets.',
+    //     'photos': [
+    //       'https://picsum.photos/250?image=107',
+    //       'https://picsum.photos/250?image=108',
+    //     ],
+    //     'videos': [
+    //       'https://www.example.com/tech_video.mp4',
+    //     ],
+    //     'others': [
+    //       {
+    //         'response': [
+    //           {
+    //             'name': 'Tech Enthusiast',
+    //             'description': 'Passionate about cutting-edge technology.',
+    //             'image': 'https://picsum.photos/250?image=109',
+    //           }
+    //         ]
+    //       }
+    //     ],
+    //   },
+    // ]);
   }
 
   Future<void> fetchPosts() async {
@@ -115,8 +114,10 @@ class _PostPageState extends State<PostPage> {
         setState(() {
           posts = fetchedPosts.map<Map<String, dynamic>>((post) {
             return {
+              'postid': post['postid'],
               'title': post['title'],
               'description': post['description'],
+              'liked_by': List<String>.from(post['liked_by'] ?? []),
               'photos': List<String>.from(post['images'] ?? []),
               'likes': post['likes'] ?? 0,
               'comments': List<String>.from(post['comments'] ?? []),
@@ -261,23 +262,41 @@ class FullPostDetailsPage extends StatefulWidget {
 }
 
 class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
-  List<Comment> comments = [
-    Comment(
-        text: 'Comment 1',
-        timestamp: DateTime.now().subtract(Duration(minutes: 15))),
-    Comment(
-        text: 'Comment 2',
-        timestamp: DateTime.now().subtract(Duration(minutes: 7))),
-    Comment(
-        text: 'Comment 3',
-        timestamp: DateTime.now().subtract(Duration(minutes: 2))),
-  ];
+  List<Comment> comments = [];
 
   bool isLiked = false;
 
   @override
+  void initState() {
+    super.initState();
+    List<String> likedBy = widget.post['liked_by']?.cast<String>() ?? [];
+    String localEmail = '';
+    _getLocalEmail().then((email) {
+      localEmail = email;
+      setState(() {
+        isLiked = likedBy.contains(localEmail);
+      });
+    });
+
+    comments = widget.post['comments']?.map<Comment>((comment) {
+          return Comment(
+            text: comment['text'],
+            timestamp: DateTime.parse(comment['timestamp']),
+          );
+        }).toList() ??
+        [];
+  }
+
+  Future<String> _getLocalEmail() async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    return allUserData.first['email'];
+  }
+
+  @override
   Widget build(BuildContext context) {
-    List<String> imageUrls = widget.post['images']?.cast<String>() ?? [];
+    List<String> imageUrls = widget.post['photos']?.cast<String>() ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -301,22 +320,30 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
               SizedBox(
                 height: 8,
               ),
+              if (widget.post['title'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    '${widget.post['title']}',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
               if (widget.post['description'] != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
                     '${widget.post['description']}',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
-              if (widget.post['images'] != null)
+              if (widget.post['photos'] != null)
                 Column(
                   children: List.generate(
                     imageUrls.length,
                     (index) => Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Image.network(
-                        imageUrls[index],
+                        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/${imageUrls[index]}', // Replace YOUR_BASE_URL with your actual base URL
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -334,9 +361,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       color: isLiked ? Colors.red : null,
                     ),
                     onPressed: () {
-                      setState(() {
-                        isLiked = !isLiked;
-                      });
+                      _likePost(widget.post['postid']);
                     },
                   ),
                   Text(
@@ -381,6 +406,38 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         ),
       ),
     );
+  }
+
+  void _likePost(String id) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    print(id);
+    final String apiUrl =
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/likePost';
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'postId': id.toString(),
+          'email': localEmail,
+          'action': isLiked ? 'unlike' : 'like',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          isLiked = !isLiked;
+        });
+      } else {
+        print(
+            'Failed to ${isLiked ? 'unlike' : 'like'} the post. Error: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error ${isLiked ? 'unliking' : 'liking'} the post: $e');
+    }
   }
 
   void _showCommentDialog(BuildContext context) {
