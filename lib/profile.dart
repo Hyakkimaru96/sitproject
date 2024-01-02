@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sit/Auth%20flow/signup.dart';
+import 'package:sit/Utilities/Database_helper.dart';
 
 void main() {
   runApp(ProfileApp());
@@ -26,17 +28,100 @@ class UserProfile extends StatefulWidget {
 
 class _UserProfileState extends State<UserProfile> {
   final List<String> citiesInTamilNadu = [
+    'Mumbai',
+    'Delhi',
+    'Bangalore',
+    'Hyderabad',
     'Chennai',
+    'Kolkata',
+    'Ahmedabad',
+    'Pune',
+    'Surat',
+    'Jaipur',
+    'Lucknow',
+    'Kanpur',
+    'Nagpur',
+    'Indore',
+    'Thane',
+    'Bhopal',
+    'Visakhapatnam',
+    'Pimpri-Chinchwad',
+    'Patna',
+    'Vadodara',
+    'Ghaziabad',
+    'Ludhiana',
+    'Agra',
+    'Nashik',
+    'Ranchi',
+    'Faridabad',
+    'Meerut',
+    'Rajkot',
+    'Kalyan-Dombivali',
+    'Vasai-Virar',
+    'Varanasi',
+    'Srinagar',
+    'Aurangabad',
+    'Dhanbad',
+    'Amritsar',
+    'Navi Mumbai',
+    'Allahabad',
+    'Ranchi',
+    'Howrah',
     'Coimbatore',
+    'Jabalpur',
+    'Gwalior',
+    'Vijayawada',
+    'Jodhpur',
     'Madurai',
-    'Tiruchirappalli',
-    'Salem',
-    'Tirunelveli',
+    'Raipur',
+    'Kota',
+    'Guwahati',
   ];
-  String selectedCity = 'Chennai'; // Assume you get this value from the backend
+  String? selectedCity =
+      'Chennai'; // Assume you get this value from the backend
+  String? userName;
+  String? userEmail;
+  String? userPhone;
 
-  // Flag to indicate edit mode
   bool isEditMode = false;
+  @override
+  void initState() {
+    super.initState();
+    // Fetch user data from the database and initialize variables
+    fetchUserData();
+  }
+
+  Future<void> fetchUserData() async {
+    // Replace with actual database helper method to fetch user data
+    DatabaseHelper dbHelper = DatabaseHelper.instance;
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    Map<String, dynamic>? userData = await dbHelper.getUserData(localEmail);
+
+    if (userData != null) {
+      print('User Data:');
+      print('Name: ${userData['name']}');
+      print('Email: ${userData['email']}');
+      print('Phone: ${userData['phone']}');
+      print('City: ${userData['city']}');
+      print('Person Name: ${userData['personName']}');
+      print('Person Phone: ${userData['personPhone']}');
+      print('mPIN: ${userData['mpin']}');
+      print('Is Verified: ${userData['is_verified'] == 1 ? true : false}');
+      setState(() {
+        userName = userData['name'] ?? '';
+        userEmail = userData['email'] ?? '';
+        userPhone = userData['phone'] ?? '';
+        selectedCity = userData['city'] ??
+            citiesInTamilNadu[0]; // Default to the first city if not available
+      });
+    } else {
+      print('User not found!');
+    }
+    // Initialize variables with fetched data
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +151,7 @@ class _UserProfileState extends State<UserProfile> {
       body: SingleChildScrollView(
         child: Center(
           child: SafeArea(
-            minimum: EdgeInsets.fromLTRB(16,0, 8, 16),
+            minimum: EdgeInsets.fromLTRB(16, 0, 8, 16),
             child: Column(
               children: [
                 Padding(
@@ -80,14 +165,14 @@ class _UserProfileState extends State<UserProfile> {
                     ),
                   ),
                 ),
-                textPrettier(context, 'Name', 'John Doe', isEditMode),
-                textPrettier(context, 'Email', 'john.doe@example.com', isEditMode),
-                textPrettier(context, 'Phone', '+123 456 7890', isEditMode),
-                textPrettier(context, 'City', selectedCity, isEditMode),
-                textPrettier(context, 'Person Name', 'Jane Doe', isEditMode),
-                textPrettier(context, 'Person Mobile No', '+987 654 3210', isEditMode),
-                textPrettier(context, 'Professional Intro', 'Software Developer', isEditMode),
-                textPrettier(context, 'Websites / Social Media Handle Link', 'https://example.com', isEditMode),
+                textPrettier(context, 'Name', userName!, isEditMode),
+                textPrettier(context, 'Email', userEmail!, isEditMode),
+                textPrettier(context, 'Phone', userPhone!, isEditMode),
+                textPrettier(context, 'City', selectedCity!, isEditMode),
+                textPrettier(context, 'Professional Intro',
+                    'Software Developer', isEditMode),
+                textPrettier(context, 'Websites / Social Media Handle Link',
+                    'https://example.com', isEditMode),
               ],
             ),
           ),
@@ -96,7 +181,8 @@ class _UserProfileState extends State<UserProfile> {
     );
   }
 
-  Widget textPrettier(BuildContext context, String labelText, String value, bool isEditable) {
+  Widget textPrettier(
+      BuildContext context, String labelText, String value, bool isEditable) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
       child: Container(
@@ -131,9 +217,7 @@ class _UserProfileState extends State<UserProfile> {
                           border: InputBorder.none,
                         ),
                         controller: TextEditingController(text: value),
-                        onChanged: (newValue) {
-                          // Handle changes if needed
-                        },
+                        onChanged: (newValue) {},
                       ),
                     )
                   : Container(
@@ -170,11 +254,15 @@ class _UserProfileState extends State<UserProfile> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                // Implement the logout logic, e.g., clear user data and navigate to the login page
-                // Navigator.pushReplacementNamed(context, '/login');
-                // For example, pop to the root screen
-                Navigator.of(context).popUntil((route) => route.isFirst);
+              onPressed: () async {
+                await DatabaseHelper.instance.deleteUser();
+
+                // Close the dialog
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignUpScreen()),
+                );
               },
               child: Text('Logout'),
             ),
