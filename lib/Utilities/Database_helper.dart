@@ -40,6 +40,28 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<Map<String, dynamic>?> getUserData(String email) async {
+    try {
+      Database db = await instance.database;
+
+      List<Map<String, dynamic>> result = await db.query(
+        'users',
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+
+      if (result.isNotEmpty) {
+        return result.first;
+      } else {
+        print('User not found with email: $email');
+        return null;
+      }
+    } catch (error) {
+      print('Error fetching user data: $error');
+      return null;
+    }
+  }
+
   Future<void> deleteUserTable() async {
     Database db = await instance.database;
     await db.execute('DELETE FROM $tableName where id =1');
