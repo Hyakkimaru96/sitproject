@@ -25,71 +25,6 @@ class _PostPageState extends State<PostPage> {
   void initState() {
     super.initState();
     fetchPosts();
-    // posts.addAll([
-    //   {
-    //     'title': 'Exploring Nature',
-    //     'description': 'A beautiful day spent exploring nature trails.',
-    //     'photos': [
-    //       'https://picsum.photos/250?image=101',
-    //       'https://picsum.photos/250?image=102',
-    //     ],
-    //     'connections': [
-    //       {
-    //         'response': [
-    //           {
-    //             'name': 'Nature Lover',
-    //             'description': 'Exploring the beauty of nature.',
-    //             'image': 'https://picsum.photos/250?image=103',
-    //           }
-    //         ]
-    //       }
-    //     ],
-    //   },
-    //   {
-    //     'title': 'Culinary Delights',
-    //     'description': 'A culinary adventure trying new dishes and flavors.',
-    //     'photos': [
-    //       'https://picsum.photos/250?image=104',
-    //       'https://picsum.photos/250?image=105',
-    //     ],
-    //     'videos': [
-    //       'https://www.example.com/culinary_video.mp4',
-    //     ],
-    //     'follow': [
-    //       {
-    //         'response': [
-    //           {
-    //             'name': 'Foodie Explorer',
-    //             'description': 'Exploring the world one dish at a time.',
-    //             'image': 'https://picsum.photos/250?image=106',
-    //           }
-    //         ]
-    //       }
-    //     ],
-    //   },
-    //   {
-    //     'title': 'Tech Innovations',
-    //     'description': 'Discovering the latest tech innovations and gadgets.',
-    //     'photos': [
-    //       'https://picsum.photos/250?image=107',
-    //       'https://picsum.photos/250?image=108',
-    //     ],
-    //     'videos': [
-    //       'https://www.example.com/tech_video.mp4',
-    //     ],
-    //     'others': [
-    //       {
-    //         'response': [
-    //           {
-    //             'name': 'Tech Enthusiast',
-    //             'description': 'Passionate about cutting-edge technology.',
-    //             'image': 'https://picsum.photos/250?image=109',
-    //           }
-    //         ]
-    //       }
-    //     ],
-    //   },
-    // ]);
   }
 
   Future<void> fetchPosts() async {
@@ -132,6 +67,20 @@ class _PostPageState extends State<PostPage> {
     }
   }
 
+  Future<void> _navigateToFullPostDetailsPage(Map<String, dynamic> post) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullPostDetailsPage(post: post),
+      ),
+    );
+    if (result != null && result is bool) {
+      if (result == true || result == false) {
+        fetchPosts();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,12 +120,7 @@ class _PostPageState extends State<PostPage> {
                           })?.toList() ??
                           [],
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FullPostDetailsPage(post: post),
-                      ),
-                    );
+                    _navigateToFullPostDetailsPage(post);
                   },
                 );
               },
@@ -298,110 +242,115 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
   Widget build(BuildContext context) {
     List<String> imageUrls = widget.post['photos']?.cast<String>() ?? [];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Post Details'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+    return WillPopScope(
+      onWillPop: () async {
+        // Return false to disable the back press
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Post Details'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 32,
-              ),
-              SizedBox(
-                height: 8,
-              ),
-              if (widget.post['title'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    '${widget.post['title']}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 32,
                 ),
-              if (widget.post['description'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    '${widget.post['description']}',
-                    style: TextStyle(fontSize: 12),
-                  ),
+                SizedBox(
+                  height: 8,
                 ),
-              if (widget.post['photos'] != null)
-                Column(
-                  children: List.generate(
-                    imageUrls.length,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Image.network(
-                        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/${imageUrls[index]}', // Replace YOUR_BASE_URL with your actual base URL
-                        fit: BoxFit.cover,
+                if (widget.post['title'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      '${widget.post['title']}',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ),
+                if (widget.post['description'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      '${widget.post['description']}',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (widget.post['photos'] != null)
+                  Column(
+                    children: List.generate(
+                      imageUrls.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Image.network(
+                          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/${imageUrls[index]}', // Replace YOUR_BASE_URL with your actual base URL
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              SizedBox(
-                  height: 16), // Add some space between photos and comments
-
-              // Display Like button
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.red : null,
-                    ),
-                    onPressed: () {
-                      _likePost(widget.post['postid']);
-                    },
-                  ),
-                  Text(
-                    'Like',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-
-              // Display comments
-              if (comments.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                SizedBox(
+                    height: 16), // Add some space between photos and comments
+                Row(
                   children: [
-                    Text(
-                      'Comments:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: comments.length,
-                      itemBuilder: (context, index) {
-                        Comment comment = comments[index];
-                        return ListTile(
-                          title: Text(comment.text),
-                          subtitle: Text(_formatTimestamp(comment.timestamp)),
-                        );
+                    IconButton(
+                      icon: Icon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: isLiked ? Colors.red : null,
+                      ),
+                      onPressed: () {
+                        _likePost(widget.post['postid']);
                       },
                     ),
-                    SizedBox(height: 16),
+                    Text(
+                      'Like',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
-              ElevatedButton(
-                onPressed: () {
-                  _showCommentDialog(context);
-                },
-                child: Text('Add Comment'),
-              ),
-            ],
+
+                // Display comments
+                if (comments.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Comments:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: comments.length,
+                        itemBuilder: (context, index) {
+                          Comment comment = comments[index];
+                          return ListTile(
+                            title: Text(comment.text),
+                            subtitle: Text(_formatTimestamp(comment.timestamp)),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                ElevatedButton(
+                  onPressed: () {
+                    _showCommentDialog(context);
+                  },
+                  child: Text('Add Comment'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -431,6 +380,8 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         setState(() {
           isLiked = !isLiked;
         });
+        print(isLiked);
+        Navigator.pop(context, isLiked);
       } else {
         print(
             'Failed to ${isLiked ? 'unlike' : 'like'} the post. Error: ${response.reasonPhrase}');
