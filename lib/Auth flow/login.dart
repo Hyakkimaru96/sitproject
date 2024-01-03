@@ -13,31 +13,42 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _forgotpasswordController = TextEditingController();
+  TextEditingController _loginEmailController = TextEditingController();
+  TextEditingController _mpinController = TextEditingController();
+  TextEditingController _forgotPasswordEmailController = TextEditingController();
 
   // Create a boolean variable to track whether all required fields are filled
-  bool areAllFieldsFilled = false;
+  bool areAllLoginFieldsFilled = false;
+  bool isForgotPasswordEmailFilled = false;
 
   @override
   void initState() {
     super.initState();
 
     // Add listeners to the text controllers for real-time validation
-    _emailController.addListener(updateButtonState);
+    _loginEmailController.addListener(updateLoginButtonState);
+    _mpinController.addListener(updateLoginButtonState);
+    _forgotPasswordEmailController.addListener(updateForgotPasswordButtonState);
   }
 
-  void updateButtonState() {
-    // Check if all required fields are filled
-    if (_emailController.text.isNotEmpty) {
+  void updateLoginButtonState() {
+    // Check if all required login fields are filled
+    if (_loginEmailController.text.isNotEmpty && _mpinController.text.isNotEmpty) {
       setState(() {
-        areAllFieldsFilled = true;
+        areAllLoginFieldsFilled = true;
       });
     } else {
       setState(() {
-        areAllFieldsFilled = false;
+        areAllLoginFieldsFilled = false;
       });
     }
+  }
+
+  void updateForgotPasswordButtonState() {
+    // Check if the forgot password email field is filled
+    setState(() {
+      isForgotPasswordEmailFilled = _forgotPasswordEmailController.text.isNotEmpty;
+    });
   }
 
   @override
@@ -53,19 +64,35 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Container(
               alignment: Alignment.center,
-              child: Image.asset(
-                  'assets/images/ignition.jpg'), // Replace with actual logo path
+              child: Image.asset('assets/images/ignition.jpg'),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 24, 04),
               child: Text(
                 "Login",
                 style: TextStyle(
-                    fontSize: 32,
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600),
+                  fontSize: 32,
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
+            Text(
+              'Email',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
+            ),
+            SizedBox(height: 15.0),
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Enter Email',
+                ),
+                controller: _loginEmailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ),
+            SizedBox(height: 15.0),
             Text(
               'MPIN (6 Digits Only)',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
@@ -77,13 +104,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Enter MPIN',
                 ),
-                controller: _emailController,
+                controller: _mpinController,
                 maxLength: 6,
                 keyboardType: TextInputType.number,
               ),
             ),
             ElevatedButton(
-              onPressed: areAllFieldsFilled
+              onPressed: areAllLoginFieldsFilled
                   ? () async {
                       // Simulating a 1-second delay for login
                       await Future.delayed(Duration(seconds: 1));
@@ -105,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         // You can show an error message or perform other actions
                       }
                     }
-                  : null, // Disable the button if not all fields are filled
+                  : null, // Disable the button if not all login fields are filled
               child: Text('Login'),
             ),
             SizedBox(height: 20.0),
@@ -128,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 });
               },
-              child: Text('Don\'t have an account? Sign Up'),
+              child: Text("Don't have an account? Sign Up"),
             ),
           ],
         ),
@@ -145,10 +172,10 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Form(
             key: _formKey,
             child: TextFormField(
-              controller: _forgotpasswordController,
+              controller: _forgotPasswordEmailController,
               decoration: InputDecoration(labelText: 'Enter Registered Email'),
               validator: (value) {
-                if (value!.isEmpty || !value!.contains('@')) {
+                if (value!.isEmpty || !value.contains('@')) {
                   return 'Please enter a valid email address';
                 }
                 return null;
@@ -163,14 +190,16 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  String email = _forgotpasswordController.text;
-                  await sendResetEmail(email);
-                  Navigator.of(context).pop();
-                  _forgotpasswordController.clear();
-                }
-              },
+              onPressed: isForgotPasswordEmailFilled
+                  ? () async {
+                      if (_formKey.currentState!.validate()) {
+                        String email = _forgotPasswordEmailController.text;
+                        await sendResetEmail(email);
+                        Navigator.of(context).pop();
+                        _forgotPasswordEmailController.clear();
+                      }
+                    }
+                  : null,
               child: Text('Submit'),
             ),
           ],
@@ -198,11 +227,9 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         print(
             'Error sending reset email: ${response.statusCode}, ${response.body}');
-        // Handle error (e.g., show an error message to the user)
       }
     } catch (e) {
       print('Error during HTTP request: $e');
-      // Handle error (e.g., show an error message to the user)
     }
   }
 }
@@ -214,6 +241,7 @@ class SetMasterpinScreen extends StatefulWidget {
 
 class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  TextEditingController _emailController = TextEditingController();
   TextEditingController _masterpinController = TextEditingController();
 
   // Create a boolean variable to track whether all required fields are filled
@@ -222,11 +250,12 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   @override
   void initState() {
     super.initState();
+    _emailController.addListener(updateButtonState);
     _masterpinController.addListener(updateButtonState);
   }
 
   void updateButtonState() {
-    if (_masterpinController.text.isNotEmpty) {
+    if (_emailController.text.isNotEmpty && _masterpinController.text.isNotEmpty) {
       setState(() {
         areAllFieldsFilled = true;
       });
@@ -251,18 +280,39 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
             Container(
               alignment: Alignment.center,
               child: Image.asset(
-                  'assets/images/ignition.jpg'), // Replace with actual logo path
+                'assets/images/ignition.jpg',
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 24, 04),
               child: Text(
                 "Set Masterpin",
                 style: TextStyle(
-                    fontSize: 32,
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600),
+                  fontSize: 32,
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
+            Text(
+              'Email',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
+            ),
+            SizedBox(height: 15.0),
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Form(
+                key: _formKey,
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Enter Email',
+                  ),
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ),
+            ),
+            SizedBox(height: 15.0),
             Text(
               'MPIN (6 Digits Only)',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
@@ -298,8 +348,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
                       // Replace this with your actual logic for setting masterpin
 
                       // After setting masterpin, navigate to the dashboard screen
-                      String email =
-                          await getEmailFromLocal(); // Replace with your logic to get email from local
+                      String email = _emailController.text;
                       String mpin = _masterpinController.text;
                       await postMasterpin(email, mpin);
                       Navigator.pushReplacement(
