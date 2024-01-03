@@ -253,7 +253,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context, isLiked);
             },
           ),
         ),
@@ -381,7 +381,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           isLiked = !isLiked;
         });
         print(isLiked);
-        Navigator.pop(context, isLiked);
       } else {
         print(
             'Failed to ${isLiked ? 'unlike' : 'like'} the post. Error: ${response.reasonPhrase}');
