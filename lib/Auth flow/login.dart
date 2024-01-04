@@ -1,10 +1,13 @@
 import 'dart:convert';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/signup.dart';
 import 'package:http/http.dart' as http;
 import 'package:sit/Utilities/Database_helper.dart';
+import 'package:sit/Utilities/firebase_options.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../Main application/dashboard.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -15,7 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController _loginEmailController = TextEditingController();
   TextEditingController _mpinController = TextEditingController();
-  TextEditingController _forgotPasswordEmailController = TextEditingController();
+  TextEditingController _forgotPasswordEmailController =
+      TextEditingController();
 
   // Create a boolean variable to track whether all required fields are filled
   bool areAllLoginFieldsFilled = false;
@@ -33,7 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void updateLoginButtonState() {
     // Check if all required login fields are filled
-    if (_loginEmailController.text.isNotEmpty && _mpinController.text.isNotEmpty) {
+    if (_loginEmailController.text.isNotEmpty &&
+        _mpinController.text.isNotEmpty) {
       setState(() {
         areAllLoginFieldsFilled = true;
       });
@@ -47,8 +52,83 @@ class _LoginScreenState extends State<LoginScreen> {
   void updateForgotPasswordButtonState() {
     // Check if the forgot password email field is filled
     setState(() {
-      isForgotPasswordEmailFilled = _forgotPasswordEmailController.text.isNotEmpty;
+      isForgotPasswordEmailFilled =
+          _forgotPasswordEmailController.text.isNotEmpty;
     });
+  }
+
+  Future<void> sendLoginCredentials(String email, String mpin) async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    print("Token is " + fcmToken!);
+    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
+      print("Token is " + fcmToken);
+    }).onError((err) {
+      print("Error is " + err);
+    });
+    String apiUrl =
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/login';
+    Map<String, String> headers = {'Content-Type': 'application/json'};
+    Map<String, dynamic> body = {'email': email, 'mpin': mpin};
+
+    try {
+      http.Response response = await http.post(
+        Uri.parse(apiUrl),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseBody = jsonDecode(response.body);
+        if (responseBody.containsKey('personName')) {
+          Fluttertoast.showToast(
+            msg: 'Login Success..',
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+          bool isVerified = responseBody['is_verified'] == 1;
+
+          await DatabaseHelper.instance.insertUserData(
+            email: responseBody['email'],
+            name: responseBody['name'],
+            phone: responseBody['phone'],
+            city: responseBody['city'],
+            personName: responseBody['personName'],
+            mpin: mpin,
+            personPhone: responseBody['personMobileNo'],
+            isVerified: isVerified,
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Dashboard(),
+            ),
+          );
+        }
+      } else {
+        Fluttertoast.showToast(
+          msg: '${response.body}. Try again',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      print('Error during HTTP request: $e');
+      Fluttertoast.showToast(
+        msg: 'Error during login. Please try again.',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
   }
 
   @override
@@ -114,23 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ? () async {
                       // Simulating a 1-second delay for login
                       await Future.delayed(Duration(seconds: 1));
-
-                      // Simulating a successful login
-                      // Replace this with your actual authentication logic
-                      bool isAuthenticated = true;
-
-                      if (isAuthenticated) {
-                        // Navigate to the dashboard screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Dashboard(),
-                          ),
-                        );
-                      } else {
-                        // Handle failed authentication
-                        // You can show an error message or perform other actions
-                      }
+                      String email = _loginEmailController.text;
+                      String mpin = _mpinController.text;
+                      await sendLoginCredentials(email, mpin);
                     }
                   : null, // Disable the button if not all login fields are filled
               child: Text('Login'),
@@ -255,7 +321,8 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   }
 
   void updateButtonState() {
-    if (_emailController.text.isNotEmpty && _masterpinController.text.isNotEmpty) {
+    if (_emailController.text.isNotEmpty &&
+        _masterpinController.text.isNotEmpty) {
       setState(() {
         areAllFieldsFilled = true;
       });
@@ -369,7 +436,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
 
   Future<void> postMasterpin(String email, String mpin) async {
     String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/set_mpin'; // Replace with your actual API URL
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/set_mpin';
     Map<String, String> headers = {'Content-Type': 'application/json'};
     Map<String, dynamic> body = {'email': email, 'mpin': mpin};
 
