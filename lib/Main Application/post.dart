@@ -253,7 +253,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
             onPressed: () {
-              Navigator.pop(context, isLiked);
+              Navigator.pop(context);
             },
           ),
         ),
@@ -319,6 +319,14 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                   ],
                 ),
 
+                // Add Comment button
+                ElevatedButton(
+                  onPressed: () {
+                    _showCommentDialog(context);
+                  },
+                  child: Text('Add Comment'),
+                ),
+
                 // Display comments
                 if (comments.isNotEmpty)
                   Column(
@@ -329,12 +337,20 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 8),
-                      ListView.builder(
+                      ListView.separated(
                         shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
                         itemCount: comments.length,
+                        separatorBuilder: (context, index) => Divider(),
                         itemBuilder: (context, index) {
                           Comment comment = comments[index];
                           return ListTile(
+                            leading: CircleAvatar(
+                              radius: 20,
+                              backgroundImage: AssetImage(
+                                'assets/profpic.png', // Replace with the actual path to your default profile picture asset
+                              ),
+                            ),
                             title: Text(comment.text),
                             subtitle: Text(_formatTimestamp(comment.timestamp)),
                           );
@@ -343,12 +359,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       SizedBox(height: 16),
                     ],
                   ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showCommentDialog(context);
-                  },
-                  child: Text('Add Comment'),
-                ),
               ],
             ),
           ),
@@ -381,6 +391,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           isLiked = !isLiked;
         });
         print(isLiked);
+        Navigator.pop(context, isLiked);
       } else {
         print(
             'Failed to ${isLiked ? 'unlike' : 'like'} the post. Error: ${response.reasonPhrase}');
@@ -409,9 +420,12 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                 onPressed: () {
                   String newComment = commentController.text.trim();
                   if (newComment.isNotEmpty) {
+                    Comment comment = Comment(
+                      text: newComment,
+                      timestamp: DateTime.now(),
+                    );
                     setState(() {
-                      comments.insert(0,
-                          Comment(text: newComment, timestamp: DateTime.now()));
+                      comments.insert(0, comment);
                     });
 
                     Navigator.pop(context);
@@ -425,7 +439,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
       },
     );
   }
-
   String _formatTimestamp(DateTime timestamp) {
     return '${timestamp.hour}:${timestamp.minute} on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
   }
