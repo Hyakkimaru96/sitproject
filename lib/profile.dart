@@ -99,7 +99,7 @@ class _UserProfileState extends State<UserProfile> {
         await DatabaseHelper.instance.getAllUserData();
     String localEmail = allUserData.first['email'];
     Map<String, dynamic>? userData = await dbHelper.getUserData(localEmail);
-
+    print(userData);
     if (userData != null) {
       print('User Data:');
       print('Name: ${userData['name']}');
