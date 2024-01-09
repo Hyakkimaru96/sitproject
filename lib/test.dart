@@ -21,9 +21,9 @@ class ProfilePage1 extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          const Expanded(flex: 1, child: _TopPortion()),
+          const Expanded(flex: 2, child: _TopPortion()),
           Expanded(
-            flex: 3,
+            flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
