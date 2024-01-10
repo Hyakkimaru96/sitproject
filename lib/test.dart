@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
+import 'package:sit/Main%20Application/connection.dart';
+import 'package:sit/Main%20Application/dashboard.dart';
 import 'dart:convert';
 import 'package:sit/Main%20Application/post.dart';
 import 'package:http/http.dart' as http;
@@ -13,11 +18,77 @@ String apiUrl =
         Remove lines in fecthPosts() lines 207
 */
 
-class ProfilePage1 extends StatelessWidget {
-  const ProfilePage1({Key? key}) : super(key: key);
+class ProfilePage1 extends StatefulWidget {
+  final String userName, userEmail;
+  final String postCount, followingCount, followersCount;
+  final bool x;
+
+  const ProfilePage1({
+    Key? key,
+    required this.userName,
+    required this.userEmail,
+    required this.followingCount,
+    required this.followersCount,
+    required this.postCount,
+    required this.x,
+  }) : super(key: key);
+
+  @override
+  _ProfilePage1State createState() => _ProfilePage1State();
+}
+
+class _ProfilePage1State extends State<ProfilePage1> {
+  bool isFollowing = false;
+
+  void followUser(String userEmail) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/follow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
+      );
+      if (response.statusCode == 200 &&
+          response.body == 'Followed Successfully!!') {
+      } else {
+        print(response.body);
+        print('Failed to follow user. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error following user: $error');
+    }
+  }
+
+  void unfollowUser(String userEmail) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/unfollow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
+      );
+      if (response.statusCode == 200 &&
+          response.body == 'Unfollowed Successfully!!') {
+      } else {
+        print(response.body);
+        print('Failed to unfollow user. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error unfollowing user: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    isFollowing = widget.x;
     return Scaffold(
       body: Column(
         children: [
@@ -29,7 +100,7 @@ class ProfilePage1 extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    "User Name", //TODO
+                    widget.userName,
                     style: Theme.of(context)
                         .textTheme
                         .headline6
@@ -40,16 +111,29 @@ class ProfilePage1 extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       FloatingActionButton.extended(
-                        onPressed: () {},
+                        onPressed: () {
+                          setState(() {
+                            isFollowing = !isFollowing;
+                            if (isFollowing) {
+                              followUser(widget.userEmail);
+                            } else {
+                              unfollowUser(widget.userEmail);
+                            }
+                          });
+                        },
                         heroTag: 'follow',
                         elevation: 0,
-                        label: const Text("Follow"),
-                        icon: const Icon(Icons.person_add_alt_1),
+                        label: Text(isFollowing ? "Following" : "Follow"),
+                        icon: Icon(
+                          isFollowing
+                              ? Icons.check_circle
+                              : Icons.person_add_alt_1,
+                        ),
                       ),
                       const SizedBox(width: 16.0),
                       FloatingActionButton.extended(
                         onPressed: () {},
-                        heroTag: 'mesage',
+                        heroTag: 'message',
                         elevation: 0,
                         backgroundColor: Colors.red,
                         label: const Text("Message"),
@@ -58,13 +142,16 @@ class ProfilePage1 extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const _ProfileInfoRow(),
+                  _ProfileInfoRow(
+                    a: widget.followersCount,
+                    b: widget.followingCount,
+                    c: widget.postCount,
+                  ),
                   Expanded(
                     child: Container(
-                      child: PostPage2(),
+                      child: PostPage2(userEmail: widget.userEmail),
                     ),
                   )
-                  // PostPage2()
                 ],
               ),
             ),
@@ -76,14 +163,16 @@ class ProfilePage1 extends StatelessWidget {
 }
 
 class _ProfileInfoRow extends StatelessWidget {
-  const _ProfileInfoRow({Key? key}) : super(key: key);
+  final String a, b, c;
+  const _ProfileInfoRow(
+      {Key? key, required this.a, required this.b, required this.c})
+      : super(key: key);
 
-  final List<ProfileInfoItem> _items = const [
-    ProfileInfoItem("Posts", 900), //TODO
-    ProfileInfoItem("Followers", 120), //TODO
-    ProfileInfoItem("Following", 200), //TODO
-  ];
-
+  List<ProfileInfoItem> get _items => [
+        ProfileInfoItem("Posts", int.parse(c)),
+        ProfileInfoItem("Followers", int.parse(a)),
+        ProfileInfoItem("Following", int.parse(b)),
+      ];
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -192,12 +281,16 @@ class _TopPortion extends StatelessWidget {
 }
 
 class PostPage2 extends StatefulWidget {
+  final String userEmail;
+
+  PostPage2({required this.userEmail});
   @override
   _PostPage2State createState() => _PostPage2State();
 }
 
 class _PostPage2State extends State<PostPage2> {
   List<Map<String, dynamic>> posts = [];
+
   @override
   void initState() {
     super.initState();
@@ -205,7 +298,13 @@ class _PostPage2State extends State<PostPage2> {
   }
 
   Future<void> fetchPosts() async {
-    //! ---- REMOVE BELOW CODE ----
+    String apiUrl =
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/postbyuser';
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      body: {'email': widget.userEmail},
+    );
 
     setState(() {
       posts = List.generate(
@@ -220,21 +319,6 @@ class _PostPage2State extends State<PostPage2> {
                 'comments': List<String>.from([]),
               }));
     });
-    return;
-
-    //! ---- REMOVE TILL HERE ----
-
-    await DatabaseHelper.instance.database;
-    List<Map<String, dynamic>> allUserData =
-        await DatabaseHelper.instance.getAllUserData();
-    String localEmail = allUserData.first['email'];
-    String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/getPosts';
-
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      body: {'email': localEmail},
-    );
 
     if (response.statusCode == 200) {
       Map<String, dynamic> jsonResponse = jsonDecode(response.body);
@@ -278,37 +362,46 @@ class _PostPage2State extends State<PostPage2> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return PostPreviewCard(
-                  title: post['title'],
-                  description: post['description'],
-                  imageUrls:
-                      (post['photos'] as List<dynamic>).map<String>((photo) {
-                            if (photo is String) {
-                              if (photo.startsWith('http')) {
-                                return photo;
-                              } else {
-                                return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Dashboard()),
+        );
+        return false; // Return false to allow the back button press to continue.
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: posts.length,
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  return PostPreviewCard(
+                    title: post['title'],
+                    description: post['description'],
+                    imageUrls:
+                        (post['photos'] as List<dynamic>).map<String>((photo) {
+                              if (photo is String) {
+                                if (photo.startsWith('http')) {
+                                  return photo;
+                                } else {
+                                  return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+                                }
                               }
-                            }
-                            return '';
-                          })?.toList() ??
-                          [],
-                  onTap: () {
-                    _navigateToFullPostDetailsPage(post);
-                  },
-                );
-              },
+                              return '';
+                            })?.toList() ??
+                            [],
+                    onTap: () {
+                      _navigateToFullPostDetailsPage(post);
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
