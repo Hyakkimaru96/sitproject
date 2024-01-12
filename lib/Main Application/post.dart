@@ -371,35 +371,35 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                     ),
                   ],
                 ),
-
-                // Display comments
-                if (comments.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Comments:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: comments.length,
-                        itemBuilder: (context, index) {
-                          Comment comment = comments[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              child: Icon(Icons.person, size: 16.0),
-                            ),
-                            title: Text(comment.person),
-                            subtitle: Text(comment.text),
-                          );
-                        },
-                      ),
-                      SizedBox(height: 16),
-                    ],
-                  ),
-
+              if (comments.isNotEmpty)
+  Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Comments:',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      SizedBox(height: 8),
+      Container(
+        height: 200, // Set a fixed height or use constraints as needed
+        child: ListView.builder(
+          physics: AlwaysScrollableScrollPhysics(), // Enable scrolling within the comments section
+          itemCount: comments.length,
+          itemBuilder: (context, index) {
+            Comment comment = comments[index];
+            return ListTile(
+              leading: CircleAvatar(
+                child: Icon(Icons.person, size: 16.0),
+              ),
+              title: Text(comment.person),
+              subtitle: Text(comment.text),
+            );
+          },
+        ),
+      ),
+      SizedBox(height: 16),
+    ],
+  ),
                 ElevatedButton(
                   onPressed: () {
                     _showCommentDialog(context);
