@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import 'package:path/path.dart';
 import 'package:sit/Utilities/global.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -45,17 +46,17 @@ class _PostPageState extends State<PostPage> {
       if (jsonResponse.containsKey("posts")) {
         List<dynamic> fetchedPosts = jsonResponse["posts"];
         print(fetchedPosts);
-
         setState(() {
           posts = fetchedPosts.map<Map<String, dynamic>>((post) {
             return {
               'postid': post['postid'],
+              'name': post['name'],
               'title': post['title'],
               'description': post['description'],
               'liked_by': List<String>.from(post['liked_by'] ?? []),
               'photos': List<String>.from(post['images'] ?? []),
               'likes': post['likes'] ?? 0,
-              'comments': List<String>.from(post['comments'] ?? []),
+              'comments': List<List<dynamic>>.from(post['comments'] ?? []),
             };
           }).toList();
         });
@@ -67,7 +68,8 @@ class _PostPageState extends State<PostPage> {
     }
   }
 
-  Future<void> _navigateToFullPostDetailsPage(Map<String, dynamic> post) async {
+  Future<void> _navigateToFullPostDetailsPage(
+      Map<String, dynamic> post, BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -105,6 +107,7 @@ class _PostPageState extends State<PostPage> {
               itemBuilder: (context, index) {
                 final post = posts[index];
                 return PostPreviewCard(
+                  name: post['name'],
                   title: post['title'],
                   description: post['description'],
                   imageUrls:
@@ -120,7 +123,7 @@ class _PostPageState extends State<PostPage> {
                           })?.toList() ??
                           [],
                   onTap: () {
-                    _navigateToFullPostDetailsPage(post);
+                    _navigateToFullPostDetailsPage(post, context);
                   },
                 );
               },
@@ -152,11 +155,13 @@ class _PostPageState extends State<PostPage> {
 
 class PostPreviewCard extends StatelessWidget {
   final String title;
+  final String name;
   final String description;
   final List<String> imageUrls;
   final VoidCallback onTap;
 
   PostPreviewCard({
+    required this.name,
     required this.title,
     required this.description,
     required this.imageUrls,
@@ -173,8 +178,11 @@ class PostPreviewCard extends StatelessWidget {
           children: [
             ListTile(
               tileColor: Colors.transparent.withAlpha(0),
-              title: Text(title),
-              subtitle: Text(description),
+              leading: CircleAvatar(
+                child: Icon(Icons.person, size: 16.0),
+              ),
+              title: Text(name),
+              subtitle: Text(title),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -209,10 +217,46 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
   List<Comment> comments = [];
 
   bool isLiked = false;
+  void initializePostDetails() {
+    dynamic commentsData = widget.post['comments'];
+
+    _getLocalEmail().then((localEmail) {
+      if (commentsData is List) {
+        comments = commentsData.map<Comment>((commentData) {
+          if (commentData is List && commentData.length >= 4) {
+            String person =
+                commentData[1] == localEmail ? "You" : commentData[2];
+
+            return Comment(
+              timestamp: commentData[0],
+              person: person,
+              text: commentData[3],
+              url:
+                  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
+            );
+          } else {
+            // Handle unexpected comment structure
+            return Comment(
+              timestamp: '',
+              person: '',
+              text: 'Invalid comment structure',
+              url: '',
+            );
+          }
+        }).toList();
+        comments = comments.reversed.toList();
+      } else {
+        // Handle cases where 'comments' is not a list
+        comments = [];
+      }
+      print(comments);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    initializePostDetails();
     List<String> likedBy = widget.post['liked_by']?.cast<String>() ?? [];
     String localEmail = '';
     _getLocalEmail().then((email) {
@@ -221,14 +265,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         isLiked = likedBy.contains(localEmail);
       });
     });
-
-    comments = widget.post['comments']?.map<Comment>((comment) {
-          return Comment(
-            text: comment['text'],
-            timestamp: DateTime.parse(comment['timestamp']),
-          );
-        }).toList() ??
-        [];
   }
 
   Future<String> _getLocalEmail() async {
@@ -253,7 +289,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context, isLiked);
             },
           ),
         ),
@@ -269,6 +305,23 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                 SizedBox(
                   height: 8,
                 ),
+                if (widget.post['name'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 16.0),
+                        SizedBox(
+                            width:
+                                8), // Adjust the space between the icon and text as needed
+                        Text(
+                          '${widget.post['name']}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (widget.post['title'] != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
@@ -319,14 +372,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                   ],
                 ),
 
-                // Add Comment button
-                ElevatedButton(
-                  onPressed: () {
-                    _showCommentDialog(context);
-                  },
-                  child: Text('Add Comment'),
-                ),
-
                 // Display comments
                 if (comments.isNotEmpty)
                   Column(
@@ -337,28 +382,30 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 8),
-                      ListView.separated(
+                      ListView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
                         itemCount: comments.length,
-                        separatorBuilder: (context, index) => Divider(),
                         itemBuilder: (context, index) {
                           Comment comment = comments[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              radius: 20,
-                              backgroundImage: AssetImage(
-                                'assets/profpic.png', // Replace with the actual path to your default profile picture asset
-                              ),
+                              child: Icon(Icons.person, size: 16.0),
                             ),
-                            title: Text(comment.text),
-                            subtitle: Text(_formatTimestamp(comment.timestamp)),
+                            title: Text(comment.person),
+                            subtitle: Text(comment.text),
                           );
                         },
                       ),
                       SizedBox(height: 16),
                     ],
                   ),
+
+                ElevatedButton(
+                  onPressed: () {
+                    _showCommentDialog(context);
+                  },
+                  child: Text('Add Comment'),
+                ),
               ],
             ),
           ),
@@ -391,7 +438,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
           isLiked = !isLiked;
         });
         print(isLiked);
-        Navigator.pop(context, isLiked);
       } else {
         print(
             'Failed to ${isLiked ? 'unlike' : 'like'} the post. Error: ${response.reasonPhrase}');
@@ -421,13 +467,16 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                   String newComment = commentController.text.trim();
                   if (newComment.isNotEmpty) {
                     Comment comment = Comment(
+                      url:
+                          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
                       text: newComment,
-                      timestamp: DateTime.now(),
+                      person: "You",
+                      timestamp: _formatTimestamp(DateTime.now()),
                     );
                     setState(() {
                       comments.insert(0, comment);
                     });
-
+                    _submitComment(newComment, comment.timestamp);
                     Navigator.pop(context);
                   }
                 },
@@ -439,6 +488,38 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
       },
     );
   }
+
+  void _submitComment(String newComment, String time) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    String postId = widget.post['postid'];
+
+    final String apiUrl =
+        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/addComment';
+    print(time);
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'time': time,
+          'postId': postId,
+          'email': localEmail,
+          'commentText': newComment,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('Comment submitted successfully');
+      } else {
+        print('Failed to submit comment. Error: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error submitting comment: $e');
+    }
+  }
+
   String _formatTimestamp(DateTime timestamp) {
     return '${timestamp.hour}:${timestamp.minute} on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
   }
@@ -446,9 +527,14 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
 
 class Comment {
   final String text;
-  final DateTime timestamp;
-
-  Comment({required this.text, required this.timestamp});
+  final String timestamp;
+  final String person;
+  final String url;
+  Comment(
+      {required this.text,
+      required this.person,
+      required this.timestamp,
+      required this.url});
 }
 
 /*Widget _buildSection(String title, List<Map<String, dynamic>> data) {
@@ -614,27 +700,6 @@ class _AddPostPageState extends State<AddPostPage> {
     }
   }
 
-  Future<List<XFile>?> _pickVideos() async {
-    List<XFile> videos = [];
-    try {
-      while (true) {
-        XFile? video =
-            await _imagePicker.pickVideo(source: ImageSource.gallery);
-        if (video == null) {
-          // If the user cancels the video selection, exit the loop
-          break;
-        }
-        videos.add(video);
-      }
-      return videos.isNotEmpty
-          ? videos
-          : null; // Return null if no videos were selected
-    } catch (e) {
-      print('Error picking videos: $e');
-      return null;
-    }
-  }
-
   void _addPost() async {
     await DatabaseHelper.instance.database;
     List<Map<String, dynamic>> allUserData =
@@ -667,7 +732,6 @@ class _AddPostPageState extends State<AddPostPage> {
       // Send the request
       var response = await http.Response.fromStream(await request.send());
 
-      // Handle the response as needed
       print('Server Response: ${response.body}');
 
       // Notify the parent about the new post
