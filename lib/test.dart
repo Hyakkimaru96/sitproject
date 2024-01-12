@@ -39,6 +39,11 @@ class ProfilePage1 extends StatefulWidget {
 
 class _ProfilePage1State extends State<ProfilePage1> {
   bool isFollowing = false;
+  @override
+  void initState() {
+    super.initState();
+    isFollowing = widget.x;
+  }
 
   void followUser(String userEmail) async {
     await DatabaseHelper.instance.database;
@@ -88,7 +93,6 @@ class _ProfilePage1State extends State<ProfilePage1> {
 
   @override
   Widget build(BuildContext context) {
-    isFollowing = widget.x;
     return Scaffold(
       body: Column(
         children: [
@@ -313,6 +317,7 @@ class _PostPage2State extends State<PostPage2> {
                 'postid': "post['postid']",
                 'title': "post['title']",
                 'description': "post['description']",
+                'name': "post['name']",
                 'liked_by': List<String>.from([]),
                 'photos': List<String>.from([]),
                 'likes': 0,
@@ -324,17 +329,17 @@ class _PostPage2State extends State<PostPage2> {
       Map<String, dynamic> jsonResponse = jsonDecode(response.body);
       if (jsonResponse.containsKey("posts")) {
         List<dynamic> fetchedPosts = jsonResponse["posts"];
-
         setState(() {
           posts = fetchedPosts.map<Map<String, dynamic>>((post) {
             return {
               'postid': post['postid'],
+              'name': post['name'],
               'title': post['title'],
               'description': post['description'],
               'liked_by': List<String>.from(post['liked_by'] ?? []),
               'photos': List<String>.from(post['images'] ?? []),
               'likes': post['likes'] ?? 0,
-              'comments': List<String>.from(post['comments'] ?? []),
+              'comments': List<List<dynamic>>.from(post['comments'] ?? []),
             };
           }).toList();
         });
@@ -379,6 +384,7 @@ class _PostPage2State extends State<PostPage2> {
                 itemBuilder: (context, index) {
                   final post = posts[index];
                   return PostPreviewCard(
+                    name: post['name'],
                     title: post['title'],
                     description: post['description'],
                     imageUrls:
