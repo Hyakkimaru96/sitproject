@@ -42,8 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
         for (var userData in allUserData) {
           String email = userData['email'];
           String mpin = userData['mpin'];
-          String apiUrl =
-              'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/check_verified';
+          String apiUrl = 'http://188.166.218.202/check_verified';
           Map<String, String> headers = {'Content-Type': 'application/json'};
           Map<String, dynamic> body = {'email': email};
           try {
@@ -310,8 +309,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     print('Sending data to server...');
     print('JSON Data: $jsonString');
     final response = await http.post(
-      Uri.parse(
-          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/create'),
+      Uri.parse('http://188.166.218.202/create'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
