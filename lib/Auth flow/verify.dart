@@ -55,8 +55,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           Map<String, String> headers = {'Content-Type': 'application/json'};
           Map<String, dynamic> body = {'email': email};
           http.Response response = await http.post(
-            Uri.parse(
-                'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/check_verified'),
+            Uri.parse('http://188.166.218.202/check_verified'),
             headers: headers,
             body: jsonEncode(body),
           );
@@ -122,8 +121,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   for (var userData in allUserData) {
                     String email = userData['email'];
                     String name = userData['name'];
-                    String apiUrl =
-                        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/resend_email';
+                    String apiUrl = 'http://188.166.218.202/resend_email';
                     Map<String, String> headers = {
                       'Content-Type': 'application/json'
                     };
