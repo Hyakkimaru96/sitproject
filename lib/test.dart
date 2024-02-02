@@ -52,13 +52,15 @@ class _ProfilePage1State extends State<ProfilePage1> {
     String localEmail = allUserData.first['email'];
     try {
       final response = await http.post(
-        Uri.parse(
-            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/follow'),
+        Uri.parse('https://188.166.218.202/follow'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
       );
       if (response.statusCode == 200 &&
           response.body == 'Followed Successfully!!') {
+        setState(() {
+          isFollowing = true;
+        });
       } else {
         print(response.body);
         print('Failed to follow user. Status code: ${response.statusCode}');
@@ -75,13 +77,15 @@ class _ProfilePage1State extends State<ProfilePage1> {
     String localEmail = allUserData.first['email'];
     try {
       final response = await http.post(
-        Uri.parse(
-            'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/unfollow'),
+        Uri.parse('https://188.166.218.202/unfollow'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
       );
       if (response.statusCode == 200 &&
           response.body == 'Unfollowed Successfully!!') {
+        setState(() {
+          isFollowing = false;
+        });
       } else {
         print(response.body);
         print('Failed to unfollow user. Status code: ${response.statusCode}');
@@ -302,8 +306,7 @@ class _PostPage2State extends State<PostPage2> {
   }
 
   Future<void> fetchPosts() async {
-    String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/postbyuser';
+    String apiUrl = 'https://188.166.218.202/postbyuser';
 
     final response = await http.post(
       Uri.parse(apiUrl),
@@ -393,7 +396,7 @@ class _PostPage2State extends State<PostPage2> {
                                 if (photo.startsWith('http')) {
                                   return photo;
                                 } else {
-                                  return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+                                  return 'https://188.166.218.202/images/$photo';
                                 }
                               }
                               return '';
