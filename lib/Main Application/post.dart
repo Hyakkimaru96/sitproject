@@ -33,8 +33,7 @@ class _PostPageState extends State<PostPage> {
     List<Map<String, dynamic>> allUserData =
         await DatabaseHelper.instance.getAllUserData();
     String localEmail = allUserData.first['email'];
-    final String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/getPosts';
+    final String apiUrl = 'http://188.166.218.202/getPosts';
 
     final response = await http.post(
       Uri.parse(apiUrl),
@@ -116,7 +115,7 @@ class _PostPageState extends State<PostPage> {
                               if (photo.startsWith('http')) {
                                 return photo;
                               } else {
-                                return 'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/$photo';
+                                return 'http://188.166.218.202/images/$photo';
                               }
                             }
                             return '';
@@ -246,7 +245,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         }).toList();
         comments = comments.reversed.toList();
       } else {
-        // Handle cases where 'comments' is not a list
         comments = [];
       }
       print(comments);
@@ -280,7 +278,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
 
     return WillPopScope(
       onWillPop: () async {
-        // Return false to disable the back press
         return false;
       },
       child: Scaffold(
@@ -311,9 +308,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                     child: Row(
                       children: [
                         Icon(Icons.person, size: 16.0),
-                        SizedBox(
-                            width:
-                                8), // Adjust the space between the icon and text as needed
+                        SizedBox(width: 8),
                         Text(
                           '${widget.post['name']}',
                           style: TextStyle(
@@ -346,7 +341,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       (index) => Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Image.network(
-                          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/images/${imageUrls[index]}', // Replace YOUR_BASE_URL with your actual base URL
+                          'http://188.166.218.202/images/${imageUrls[index]}',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -365,41 +360,67 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                         _likePost(widget.post['postid']);
                       },
                     ),
-                    Text(
-                      'Like',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    InkWell(
+                      onTap: () {
+                        List<Map<String, String>> likes = [];
+
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25)),
+                                clipBehavior: Clip.antiAlias,
+                                child: ListView(children: [
+                                  ...List.generate(likes.length, (index) {
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        child: Icon(Icons.person),
+                                      ),
+                                      title: Text('User'),
+                                    );
+                                  })
+                                ]));
+                          },
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text("Likes"),
+                      ),
                     ),
                   ],
                 ),
-              if (comments.isNotEmpty)
-  Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Comments:',
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      SizedBox(height: 8),
-      Container(
-        height: 200, // Set a fixed height or use constraints as needed
-        child: ListView.builder(
-          physics: AlwaysScrollableScrollPhysics(), // Enable scrolling within the comments section
-          itemCount: comments.length,
-          itemBuilder: (context, index) {
-            Comment comment = comments[index];
-            return ListTile(
-              leading: CircleAvatar(
-                child: Icon(Icons.person, size: 16.0),
-              ),
-              title: Text(comment.person),
-              subtitle: Text(comment.text),
-            );
-          },
-        ),
-      ),
-      SizedBox(height: 16),
-    ],
-  ),
+                if (comments.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Comments:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        height: 200,
+                        child: ListView.builder(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          itemCount: comments.length,
+                          itemBuilder: (context, index) {
+                            Comment comment = comments[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                child: Icon(Icons.person, size: 16.0),
+                              ),
+                              title: Text(comment.person),
+                              subtitle: Text(comment.text),
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+
                 ElevatedButton(
                   onPressed: () {
                     _showCommentDialog(context);
@@ -420,8 +441,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         await DatabaseHelper.instance.getAllUserData();
     String localEmail = allUserData.first['email'];
     print(id);
-    final String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/likePost';
+    final String apiUrl = 'http://188.166.218.202/likePost';
 
     try {
       final response = await http.post(
@@ -496,8 +516,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
     String localEmail = allUserData.first['email'];
     String postId = widget.post['postid'];
 
-    final String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/addComment';
+    final String apiUrl = 'http://188.166.218.202/addComment';
     print(time);
     try {
       final response = await http.post(
@@ -713,9 +732,7 @@ class _AddPostPageState extends State<AddPostPage> {
     };
     try {
       var request = http.MultipartRequest(
-          'POST',
-          Uri.parse(
-              'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/upload'));
+          'POST', Uri.parse('http://188.166.218.202/upload'));
       newPost.forEach((key, value) {
         request.fields[key] = value.toString();
       });
@@ -729,18 +746,14 @@ class _AddPostPageState extends State<AddPostPage> {
         }
       }
 
-      // Send the request
       var response = await http.Response.fromStream(await request.send());
-
       print('Server Response: ${response.body}');
 
-      // Notify the parent about the new post
       widget.onPostAdded(newPost);
     } catch (e) {
       print('Error uploading images: $e');
     }
-    // Handle the new post, you can use this data as needed.
     print('New Post: $newPost');
-    widget.onPostAdded(newPost); // Notify parent about the new post
+    widget.onPostAdded(newPost);
   }
 }
