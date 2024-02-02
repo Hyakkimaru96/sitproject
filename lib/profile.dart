@@ -257,8 +257,6 @@ class _UserProfileState extends State<UserProfile> {
             TextButton(
               onPressed: () async {
                 await DatabaseHelper.instance.deleteUser();
-
-                // Close the dialog
                 Navigator.of(context).pop();
                 Navigator.pushReplacement(
                   context,
