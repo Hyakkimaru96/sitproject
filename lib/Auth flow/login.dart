@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20Flow/signup.dart';
 import 'package:http/http.dart' as http;
+import 'package:sit/Auth%20flow/verify.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:sit/Utilities/firebase_options.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -21,22 +22,18 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController _forgotPasswordEmailController =
       TextEditingController();
 
-  // Create a boolean variable to track whether all required fields are filled
   bool areAllLoginFieldsFilled = false;
   bool isForgotPasswordEmailFilled = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Add listeners to the text controllers for real-time validation
     _loginEmailController.addListener(updateLoginButtonState);
     _mpinController.addListener(updateLoginButtonState);
     _forgotPasswordEmailController.addListener(updateForgotPasswordButtonState);
   }
 
   void updateLoginButtonState() {
-    // Check if all required login fields are filled
     if (_loginEmailController.text.isNotEmpty &&
         _mpinController.text.isNotEmpty) {
       setState(() {
@@ -50,7 +47,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void updateForgotPasswordButtonState() {
-    // Check if the forgot password email field is filled
     setState(() {
       isForgotPasswordEmailFilled =
           _forgotPasswordEmailController.text.isNotEmpty;
@@ -69,8 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }).onError((err) {
       print("Error is " + err);
     });
-    String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/login';
+    String apiUrl = 'http://188.166.218.202/login';
     Map<String, String> headers = {'Content-Type': 'application/json'};
     Map<String, dynamic> body = {'email': email, 'mpin': mpin};
 
@@ -83,32 +78,54 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> responseBody = jsonDecode(response.body);
-        if (responseBody.containsKey('personName')) {
-          Fluttertoast.showToast(
-            msg: 'Login Success..',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-          );
-          bool isVerified = responseBody['is_verified'] == 1;
+        if (responseBody.containsKey('is_verified')) {
+          bool x = responseBody['is_verified'];
+          print(x);
+          if (x) {
+            Fluttertoast.showToast(
+              msg: 'Login Success..',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+            );
+            bool isVerified = responseBody['is_verified'] == 1;
 
-          await DatabaseHelper.instance.insertUserData(
-            email: responseBody['email'],
-            name: responseBody['name'],
-            phone: responseBody['phone'],
-            city: responseBody['city'],
-            personName: responseBody['personName'],
-            mpin: mpin,
-            personPhone: responseBody['personMobileNo'],
-            isVerified: isVerified,
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Dashboard(),
-            ),
-          );
+            await DatabaseHelper.instance.insertUserData(
+              email: responseBody['email'],
+              name: responseBody['name'],
+              phone: responseBody['phone'],
+              city: responseBody['city'],
+              personName: responseBody['personName'],
+              mpin: mpin,
+              personPhone: responseBody['personMobileNo'],
+              isVerified: isVerified,
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerificationScreen(),
+              ),
+            );
+            bool isVerified = responseBody['is_verified'] == 0;
+            await DatabaseHelper.instance.insertUserData(
+              email: responseBody['email'],
+              name: responseBody['name'],
+              phone: responseBody['phone'],
+              city: responseBody['city'],
+              personName: responseBody['personName'],
+              mpin: mpin,
+              personPhone: responseBody['personMobileNo'],
+              isVerified: isVerified,
+            );
+          }
         }
       } else {
         Fluttertoast.showToast(
@@ -275,8 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> sendResetEmail(String email) async {
-    String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/resetpassmail';
+    String apiUrl = 'http://188.166.218.202/resetpassmail';
     Map<String, String> headers = {'Content-Type': 'application/json'};
     Map<String, dynamic> body = {'email': email};
 
@@ -307,7 +323,7 @@ class SetMasterpinScreen extends StatefulWidget {
 
 class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController _emailController = TextEditingController();
+
   TextEditingController _masterpinController = TextEditingController();
 
   // Create a boolean variable to track whether all required fields are filled
@@ -316,13 +332,12 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(updateButtonState);
+
     _masterpinController.addListener(updateButtonState);
   }
 
   void updateButtonState() {
-    if (_emailController.text.isNotEmpty &&
-        _masterpinController.text.isNotEmpty) {
+    if (_masterpinController.text.isNotEmpty) {
       setState(() {
         areAllFieldsFilled = true;
       });
@@ -362,25 +377,6 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
               ),
             ),
             Text(
-              'Email',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
-            ),
-            SizedBox(height: 15.0),
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Form(
-                key: _formKey,
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Enter Email',
-                  ),
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-              ),
-            ),
-            SizedBox(height: 15.0),
-            Text(
               'MPIN (6 Digits Only)',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w200),
             ),
@@ -410,12 +406,10 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
                   ? () async {
                       // Simulating a 1-second delay for setting masterpin
                       await Future.delayed(Duration(seconds: 1));
-
-                      // Simulating a successful masterpin setting
-                      // Replace this with your actual logic for setting masterpin
-
-                      // After setting masterpin, navigate to the dashboard screen
-                      String email = _emailController.text;
+                      await DatabaseHelper.instance.database;
+                      List<Map<String, dynamic>> allUserData =
+                          await DatabaseHelper.instance.getAllUserData();
+                      String email = allUserData.first['email'];
                       String mpin = _masterpinController.text;
                       await postMasterpin(email, mpin);
                       Navigator.pushReplacement(
@@ -435,8 +429,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   }
 
   Future<void> postMasterpin(String email, String mpin) async {
-    String apiUrl =
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/set_mpin';
+    String apiUrl = 'http://188.166.218.202/set_mpin';
     Map<String, String> headers = {'Content-Type': 'application/json'};
     Map<String, dynamic> body = {'email': email, 'mpin': mpin};
 
