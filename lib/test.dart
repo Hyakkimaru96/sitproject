@@ -52,7 +52,7 @@ class _ProfilePage1State extends State<ProfilePage1> {
     String localEmail = allUserData.first['email'];
     try {
       final response = await http.post(
-        Uri.parse('https://188.166.218.202/follow'),
+        Uri.parse('http://188.166.218.202/follow'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
       );
@@ -77,7 +77,7 @@ class _ProfilePage1State extends State<ProfilePage1> {
     String localEmail = allUserData.first['email'];
     try {
       final response = await http.post(
-        Uri.parse('https://188.166.218.202/unfollow'),
+        Uri.parse('http://188.166.218.202/unfollow'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userEmail': userEmail, 'localEmail': localEmail}),
       );
@@ -306,7 +306,7 @@ class _PostPage2State extends State<PostPage2> {
   }
 
   Future<void> fetchPosts() async {
-    String apiUrl = 'https://188.166.218.202/postbyuser';
+    String apiUrl = 'http://188.166.218.202/postbyuser';
 
     final response = await http.post(
       Uri.parse(apiUrl),
@@ -396,7 +396,7 @@ class _PostPage2State extends State<PostPage2> {
                                 if (photo.startsWith('http')) {
                                   return photo;
                                 } else {
-                                  return 'https://188.166.218.202/images/$photo';
+                                  return 'http://188.166.218.202/images/$photo';
                                 }
                               }
                               return '';
