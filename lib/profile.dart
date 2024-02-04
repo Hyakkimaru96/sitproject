@@ -1,10 +1,62 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sit/Auth%20flow/signup.dart';
 
 import 'package:sit/Utilities/Database_helper.dart';
 
 void main() {
   runApp(ProfileApp());
+}
+
+class Post {
+  final String title;
+  final String description;
+  final String imageUrl;
+
+  Post({
+    required this.title,
+    required this.description,
+    required this.imageUrl,
+  });
+}
+
+class FullPostPage extends StatelessWidget {
+  final Post post;
+
+  FullPostPage({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Full Post'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              post.title,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              post.description,
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Image.network(post.imageUrl),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ProfileApp extends StatelessWidget {
@@ -28,6 +80,7 @@ class UserProfile extends StatefulWidget {
 }
 
 class _UserProfileState extends State<UserProfile> {
+  File? _profileImage;
   final List<String> citiesInTamilNadu = [
     'Mumbai',
     'Delhi',
@@ -80,9 +133,9 @@ class _UserProfileState extends State<UserProfile> {
   ];
   String? selectedCity =
       'Chennai'; // Assume you get this value from the backend
-  String? userName;
-  String? userEmail;
-  String? userPhone;
+  String? userName='';
+  String? userEmail='';
+  String? userPhone='';
 
   bool isEditMode = false;
   @override
@@ -90,6 +143,16 @@ class _UserProfileState extends State<UserProfile> {
     super.initState();
     // Fetch user data from the database and initialize variables
     fetchUserData();
+  }
+
+  void _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
   }
 
   Future<void> fetchUserData() async {
@@ -124,119 +187,212 @@ class _UserProfileState extends State<UserProfile> {
     // Initialize variables with fetched data
   }
 
+  Future<List<Post>> fetchPosts() async {
+    // Simulate fetching posts from the server
+    await Future.delayed(Duration(seconds: 1));
+
+    // Dummy post data
+    List<Post> posts = [
+      Post(
+        title: 'Post 1',
+        description: 'Description for Post 1',
+        imageUrl: 'https://via.placeholder.com/150',
+      ),
+      Post(
+        title: 'Post 2',
+        description: 'Description for Post 2',
+        imageUrl: 'https://via.placeholder.com/150',
+      ),
+      // Add more dummy posts as needed
+    ];
+
+    return posts;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          // Add a logout button in the app bar
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () {
-              // Implement the logout functionality here
-              // For example, you can show a confirmation dialog and navigate to the login page
-              _showLogoutConfirmationDialog();
-            },
+  return Scaffold(
+    appBar: AppBar(
+      actions: [
+        // Add a logout button in the app bar
+        IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: () {
+            // Implement the logout functionality here
+            // For example, you can show a confirmation dialog and navigate to the login page
+            _showLogoutConfirmationDialog();
+          },
+        ),
+      ],
+    ),
+    body: SingleChildScrollView(
+      child: Center(
+        child: SafeArea(
+          minimum: EdgeInsets.fromLTRB(16, 0, 8, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 20),
+              GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundImage: _profileImage != null
+                        ? Image.file(
+                            File(_profileImage!.path),
+                            fit: BoxFit.cover,
+                          ).image
+                        : AssetImage('assets/default_profile_image.png'),
+                  ),
+                ),
+              SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
+                child: Text(
+                  "Update Profile",
+                  style: TextStyle(
+                    fontSize: 32,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              textPrettier(context, 'Name', userName!, isEditMode),
+              textPrettier(context, 'Email', userEmail!, isEditMode),
+              textPrettier(context, 'Phone', userPhone!, isEditMode),
+              textPrettier(context, 'City', selectedCity!, isEditMode),
+              textPrettier(context, 'Professional Intro',
+                  'Software Developer', isEditMode),
+              textPrettier(context, 'Websites / Social Media Handle Link',
+                  'https://example.com', isEditMode),
+              SizedBox(height: 20),
+              // Display posts below other information
+              FutureBuilder<List<Post>>(
+                future: fetchPosts(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (snapshot.hasData) {
+                    // Display posts
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Posts',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        ListView.builder(
+  shrinkWrap: true,
+  physics: NeverScrollableScrollPhysics(),
+  itemCount: snapshot.data!.length,
+  itemBuilder: (context, index) {
+    Post post = snapshot.data![index];
+    return GestureDetector(
+      onTap: () {
+        // Navigate to a new page to display the post in full
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FullPostPage(post: post),
+          ),
+        );
+      },
+      child: ListTile(
+        title: Text(post.title),
+        subtitle: Text(post.description),
+        leading: Image.network(post.imageUrl),
+      ),
+    );
+  },
+),
+                      ],
+                    );
+                  } else {
+                    return Center(child: Text('No data available'));
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () {
+        // Toggle edit mode
+        setState(() {
+          isEditMode = !isEditMode;
+        });
+      },
+      child: Icon(Icons.edit),
+    ),
+  );
+}
+
+  Widget textPrettier(
+  BuildContext context, String labelText, String? value, bool isEditable) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+    child: Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary,
+          width: 1.0,
+        ),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 120,
+            padding: EdgeInsets.all(8),
+            child: Text(
+              labelText + ':',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: isEditable
+                ? Container(
+                    padding: EdgeInsets.all(8),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                      ),
+                      controller: TextEditingController(text: value),
+                      onChanged: (newValue) {},
+                    ),
+                  )
+                : Container(
+                    padding: EdgeInsets.all(8),
+                    child: Text(
+                      value ?? 'N/A',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Toggle edit mode
-          setState(() {
-            isEditMode = !isEditMode;
-          });
-        },
-        child: Icon(Icons.edit),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: SafeArea(
-            minimum: EdgeInsets.fromLTRB(16, 0, 8, 16),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
-                  child: Text(
-                    "Update Profile",
-                    style: TextStyle(
-                      fontSize: 32,
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                textPrettier(context, 'Name', userName!, isEditMode),
-                textPrettier(context, 'Email', userEmail!, isEditMode),
-                textPrettier(context, 'Phone', userPhone!, isEditMode),
-                textPrettier(context, 'City', selectedCity!, isEditMode),
-                textPrettier(context, 'Professional Intro',
-                    'Software Developer', isEditMode),
-                textPrettier(context, 'Websites / Social Media Handle Link',
-                    'https://example.com', isEditMode),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget textPrettier(
-      BuildContext context, String labelText, String value, bool isEditable) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary,
-            width: 1.0,
-          ),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 120,
-              padding: EdgeInsets.all(8),
-              child: Text(
-                labelText + ':',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: isEditable
-                  ? Container(
-                      padding: EdgeInsets.all(8),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                        ),
-                        controller: TextEditingController(text: value),
-                        onChanged: (newValue) {},
-                      ),
-                    )
-                  : Container(
-                      padding: EdgeInsets.all(8),
-                      child: Text(
-                        value,
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   // Function to show a confirmation dialog before logging out
   Future<void> _showLogoutConfirmationDialog() async {
