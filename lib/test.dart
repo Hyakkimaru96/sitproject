@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
-import 'package:sit/Main%20Application/connection.dart';
 import 'package:sit/Main%20Application/dashboard.dart';
 import 'dart:convert';
 import 'package:sit/Main%20Application/post.dart';
@@ -388,6 +385,7 @@ class _PostPage2State extends State<PostPage2> {
                   final post = posts[index];
                   return PostPreviewCard(
                     name: post['name'],
+                    email: post['email'] ?? '',
                     title: post['title'],
                     description: post['description'],
                     imageUrls:
