@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool areAllLoginFieldsFilled = false;
   bool isForgotPasswordEmailFilled = false;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -31,7 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
     _loginEmailController.addListener(updateLoginButtonState);
     _mpinController.addListener(updateLoginButtonState);
     _forgotPasswordEmailController.addListener(updateForgotPasswordButtonState);
+    _loading = false;
   }
+
+  void closeKeyboard(BuildContext context) {
+  // FocusScope's unfocus method will close the keyboard
+  FocusScope.of(context).unfocus();
+}
 
   void updateLoginButtonState() {
     if (_loginEmailController.text.isNotEmpty &&
@@ -51,6 +58,36 @@ class _LoginScreenState extends State<LoginScreen> {
       isForgotPasswordEmailFilled =
           _forgotPasswordEmailController.text.isNotEmpty;
     });
+  }
+
+  // Define a method to show the loading dialog
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text("Loading..."),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Define a method to hide the loading dialog
+  void _hideLoadingDialog(BuildContext context) {
+    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(),
+              ),
+            );
   }
 
   Future<void> sendLoginCredentials(String email, String mpin) async {
@@ -101,6 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
               personPhone: responseBody['personMobileNo'],
               isVerified: isVerified,
             );
+            FocusScope.of(context).unfocus();
+            closeKeyboard(context);
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -210,10 +249,19 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: areAllLoginFieldsFilled
                   ? () async {
                       // Simulating a 1-second delay for login
+                      setState(() {
+                        _loading = true; // Show spinner
+                      });
+                      _showLoadingDialog(context); // Show loading dialog
                       await Future.delayed(Duration(seconds: 1));
                       String email = _loginEmailController.text;
                       String mpin = _mpinController.text;
                       await sendLoginCredentials(email, mpin);
+                      setState(() {
+                        _loading = false; // Hide spinner
+                      });
+                      _hideLoadingDialog(context);
+                      FocusScope.of(context).unfocus();
                     }
                   : null, // Disable the button if not all login fields are filled
               child: Text('Login'),
@@ -328,11 +376,12 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
 
   // Create a boolean variable to track whether all required fields are filled
   bool areAllFieldsFilled = false;
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-
+    _loading = false;
     _masterpinController.addListener(updateButtonState);
   }
 
@@ -347,6 +396,35 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
       });
     }
   }
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text("Loading..."),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Define a method to hide the loading dialog
+  void _hideLoadingDialog(BuildContext context) {
+    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(),
+              ),
+            );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +483,10 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
               onPressed: areAllFieldsFilled
                   ? () async {
                       // Simulating a 1-second delay for setting masterpin
+                      setState(() {
+                        _loading = true; // Show spinner
+                      });
+                      _showLoadingDialog(context); // Show loading dialog
                       await Future.delayed(Duration(seconds: 1));
                       await DatabaseHelper.instance.database;
                       List<Map<String, dynamic>> allUserData =
@@ -412,6 +494,10 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
                       String email = allUserData.first['email'];
                       String mpin = _masterpinController.text;
                       await postMasterpin(email, mpin);
+                      setState(() {
+                        _loading = false; // Hide spinner
+                      });
+                      _hideLoadingDialog(context); // Hide loading dialog
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
