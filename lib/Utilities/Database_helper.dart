@@ -35,7 +35,9 @@ class DatabaseHelper {
         personName TEXT,
         personPhone TEXT,
         mpin TEXT,
-        is_verified INTEGER
+        profile_pic TEXT,
+        is_verified INTEGER,
+        admin_approved INTEGER
       )
     ''');
   }
@@ -95,12 +97,16 @@ class DatabaseHelper {
     return await db.query(tableName);
   }
 
-  Future<void> updateIsVerifiedStatus(String email, bool isVerified) async {
+  Future<void> updateIsVerifiedStatus(
+      String email, bool isVerified, bool adminApproved) async {
     try {
       Database db = await instance.database;
       await db.update(
         'users',
-        {'is_verified': isVerified ? 1 : 0},
+        {
+          'is_verified': isVerified ? 1 : 0,
+          'admin_approved': adminApproved ? 1 : 0
+        },
         where: 'email = ?',
         whereArgs: [email],
       );
@@ -119,9 +125,24 @@ class DatabaseHelper {
         where: 'email = ?',
         whereArgs: [email],
       );
-      print('Updated is_verified status for email: $email to $mpin');
+      print('Updated mpin');
     } catch (error) {
-      print('Error updating is_verified status: $error');
+      print('Error updating mpin: $error');
+    }
+  }
+
+  Future<void> updateProfilepp(String email, String pp) async {
+    try {
+      Database db = await instance.database;
+      await db.update(
+        'users',
+        {'profile_pic': pp},
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+      print('Updated');
+    } catch (error) {
+      print('Error updating.. Status: $error');
     }
   }
 
@@ -134,6 +155,8 @@ class DatabaseHelper {
     required String mpin,
     required String personPhone,
     required bool isVerified,
+    required bool admin_approved,
+    required String profile_pic,
   }) async {
     Database db = await database;
     Map<String, dynamic> userData = {
@@ -144,6 +167,8 @@ class DatabaseHelper {
       'personName': personName,
       'personPhone': personPhone,
       'mpin': mpin,
+      'profile_pic': profile_pic,
+      'admin_approved': admin_approved ? 1 : 0,
       'is_verified': isVerified ? 1 : 0,
     };
     return await db.insert('users', userData);
