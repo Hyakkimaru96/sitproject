@@ -1,11 +1,8 @@
+import 'dart:ui';
 import 'dart:convert';
-import 'dart:ffi';
 import 'package:flutter/material.dart';
-import 'package:sit/Main%20Application/chat.dart';
-import 'package:sit/Utilities/global.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:sit/test.dart';
 
 class ConnectionsPage extends StatefulWidget {
@@ -16,10 +13,26 @@ class ConnectionsPage extends StatefulWidget {
 class _ConnectionsPageState extends State<ConnectionsPage> {
   late Future<List<User>> _usersFuture;
   List<String> followingEmails = [];
+  bool _adminApproved = false;
   @override
   void initState() {
     super.initState();
+    _fetchAdminApproval();
     _usersFuture = fetchUsers();
+  }
+
+  Future<void> _fetchAdminApproval() async {
+    try {
+      List<Map<String, dynamic>> userData =
+          await DatabaseHelper.instance.getAllUserData();
+      if (userData.isNotEmpty) {
+        setState(() {
+          _adminApproved = userData.first['admin_approved'] == 1;
+        });
+      }
+    } catch (e) {
+      print("Error fetching admin approval status: $e");
+    }
   }
 
   Future<List<User>> fetchUsers() async {
@@ -30,8 +43,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     String localEmail = allUserData.first['email'];
 
     final fresponse = await http.post(
-      Uri.parse(
-          'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/fetchfollowings'),
+      Uri.parse('http://188.166.218.202/fetchfollowings'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': localEmail}),
     );
@@ -39,8 +51,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     if (fresponse.statusCode == 200 && fresponse.body != "") {
       followingEmails = List<String>.from(json.decode(fresponse.body));
     }
-    final response = await http.get(Uri.parse(
-        'https://122f-2405-201-e010-f96e-601a-96f6-875d-23f7.ngrok-free.app/getusers'));
+    final response =
+        await http.get(Uri.parse('http://188.166.218.202/getusers'));
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = json.decode(response.body);
@@ -59,7 +71,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Perform the refresh action here before popping the route
         await _refreshData();
         return true; // Allow the page to be popped
       },
@@ -109,25 +120,49 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                           ),
                           leading: CircleAvatar(
                             radius: 28.0,
-                            child: Icon(Icons.person, size: 32.0),
+                            backgroundImage: NetworkImage(
+                              'http://188.166.218.202/profile/${user.profile_pic}',
+                            ),
                           ),
                           onTap: () {
                             print(followingEmails);
                             bool isFollowing =
                                 followingEmails.contains(user.email);
                             print(isFollowing);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ProfilePage1(
-                                        userName: user.name,
-                                        postCount: user.postcount,
-                                        userEmail: user.email,
-                                        followersCount: user.followercount,
-                                        followingCount: user.followingcount,
-                                        x: isFollowing,
-                                      )),
-                            );
+                            if (_adminApproved) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ProfilePage1(
+                                          userName: user.name,
+                                          postCount: user.postcount,
+                                          userEmail: user.email,
+                                          followersCount: user.followercount,
+                                          followingCount: user.followingcount,
+                                          x: isFollowing,
+                                          profilePic: user.profile_pic,
+                                        )),
+                              );
+                            } else {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text("Admin Approval Pending"),
+                                    content: Text(
+                                        "You need admin approval to view this profile."),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        child: Text("Close"),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
                           },
                         );
                       },
@@ -150,18 +185,51 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   }
 }
 
+Widget _buildAdminApprovalPendingScreen() {
+  return Stack(
+    children: [
+      // Blurred overlay
+      BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        blendMode: BlendMode.srcOver, // Set a valid blend mode
+        child: Container(
+          color: Colors.black.withOpacity(0.5),
+        ),
+      ),
+      // Banner
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Admin Approval Pending",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: Icon(Icons.close),
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 class User {
   final String postcount;
   final String followercount;
   final String followingcount;
   final String name;
   final String email;
+  final String profile_pic;
   User({
     required this.postcount,
     required this.followingcount,
     required this.followercount,
     required this.name,
     required this.email,
+    required this.profile_pic,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -171,6 +239,7 @@ class User {
       postcount: json['post_count'] ?? '',
       followercount: json['followers_count'] ?? '',
       followingcount: json['following_count'] ?? '',
+      profile_pic: json['profile_pic'] ?? '',
     );
   }
 }
