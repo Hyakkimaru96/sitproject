@@ -10,10 +10,42 @@ import 'package:sit/Utilities/Database_helper.dart';
 void main() {
   runApp(MaterialApp(
     home: DefaultTabController(
-      length: 2,
+      length: 3,
       child: PostPage(),
     ),
   ));
+}
+
+class Post {
+  final String postId;
+  final String title;
+  final String description;
+  final List<String> likedBy;
+  final List<String> photos;
+  final int likes;
+  final List<dynamic> comments;
+
+  Post({
+    required this.postId,
+    required this.title,
+    required this.description,
+    required this.likedBy,
+    required this.photos,
+    required this.likes,
+    required this.comments,
+  });
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+      postId: json['postid'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      likedBy: List<String>.from(json['liked_by'] ?? []),
+      photos: List<String>.from(json['images'] ?? []),
+      likes: json['likes'] ?? 0,
+      comments: List<dynamic>.from(json['comments'] ?? []),
+    );
+  }
 }
 
 class PostPage extends StatefulWidget {
@@ -26,12 +58,14 @@ class _PostPageState extends State<PostPage>
   late TabController _tabController;
   List<Map<String, dynamic>> posts = [];
   List<Map<String, dynamic>> fposts = [];
+  List<Map<String, dynamic>> myposts = [];
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabSelection);
     fetchfollowPosts();
+    fetchPostsbyUser();
     fetchPosts();
   }
 
@@ -41,6 +75,8 @@ class _PostPageState extends State<PostPage>
         fetchfollowPosts();
       } else if (_tabController.index == 1) {
         fetchPosts();
+      } else if (_tabController.index == 2) {
+        fetchPostsbyUser();
       }
     }
   }
@@ -67,7 +103,7 @@ class _PostPageState extends State<PostPage>
       Map<String, dynamic> jsonResponse = jsonDecode(response.body);
       if (jsonResponse.containsKey("posts")) {
         List<dynamic> fetchedfollowPosts = jsonResponse["posts"];
-        print(fetchedfollowPosts);
+
         setState(() {
           fposts = fetchedfollowPosts.map<Map<String, dynamic>>((p) {
             return {
@@ -88,6 +124,49 @@ class _PostPageState extends State<PostPage>
       }
     } else {
       print("Error: ${response.statusCode}");
+    }
+  }
+
+  Future<void> fetchPostsbyUser() async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+
+    if (allUserData.isNotEmpty) {
+      String localEmail = allUserData.first['email'];
+      final String apiUrl = 'http://188.166.218.202/getPostsbyUser';
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {'email': localEmail},
+      );
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        if (jsonResponse.containsKey("posts")) {
+          List<dynamic> postsByUser = jsonResponse["posts"];
+          setState(() {
+            myposts = postsByUser.map<Map<String, dynamic>>((p) {
+              return {
+                'postid': p['postid'],
+                'name': p['name'] ?? '',
+                'title': p['title'],
+                'description': p['description'],
+                'liked_by': List<String>.from(p['liked_by'] ?? []),
+                'photos': List<String>.from(p['images'] ?? []),
+                'likes': p['likes'] ?? 0,
+                'comments': List<List<dynamic>>.from(p['comments'] ?? []),
+              };
+            }).toList();
+          });
+        } else {
+          print("No posts found in the response.");
+        }
+      } else {
+        print("Error: ${response.statusCode}");
+      }
+    } else {
+      print("No user data found.");
     }
   }
 
@@ -119,6 +198,7 @@ class _PostPageState extends State<PostPage>
               'liked_by': List<String>.from(post['liked_by'] ?? []),
               'photos': List<String>.from(post['images'] ?? []),
               'likes': post['likes'] ?? 0,
+              'profile_pic': post['profile_pic'] ?? '',
               'comments': List<List<dynamic>>.from(post['comments'] ?? []),
             };
           }).toList();
@@ -142,6 +222,7 @@ class _PostPageState extends State<PostPage>
     if (result != null && result is bool) {
       if (result == true || result == false) {
         fetchPosts();
+        fetchPostsbyUser();
         fetchfollowPosts();
       }
     }
@@ -150,7 +231,7 @@ class _PostPageState extends State<PostPage>
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Number of tabs
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(
@@ -165,6 +246,7 @@ class _PostPageState extends State<PostPage>
             tabs: [
               Tab(text: "My Followings"),
               Tab(text: "Global"),
+              Tab(text: "My Posts"),
             ],
             controller: _tabController,
           ),
@@ -174,6 +256,7 @@ class _PostPageState extends State<PostPage>
           children: [
             _buildPostsTab("My Followings"),
             _buildPostsTab("Global"),
+            _buildPostsTab("My Posts"),
           ],
         ),
         floatingActionButton: OpenContainer(
@@ -199,53 +282,42 @@ class _PostPageState extends State<PostPage>
   }
 
   Widget _buildPostsTab(String tabTitle) {
-    List<Map<String, dynamic>> tabPosts;
+    List<Map<String, dynamic>> tabPosts = [];
     if (tabTitle == "Global") {
       tabPosts = posts;
     } else if (tabTitle == "My Followings") {
       tabPosts = fposts;
-    } else {
-      tabPosts = [];
+    } else if (tabTitle == "My Posts") {
+      tabPosts = myposts;
     }
-    return Column(
-      children: [
-        SizedBox(
-          height: 32,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 32, 24, 04),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: tabPosts.length,
-            itemBuilder: (context, index) {
-              final post = tabPosts[index];
-              return PostPreviewCard(
-                name: post['name'],
-                title: post['title'],
-                email: post['email'] ?? '',
-                description: post['description'],
-                imageUrls:
-                    (post['photos'] as List<dynamic>).map<String>((photo) {
-                          if (photo is String) {
-                            if (photo.startsWith('http')) {
-                              return photo;
-                            } else {
-                              return 'http://188.166.218.202/images/$photo';
-                            }
-                          }
-                          return '';
-                        })?.toList() ??
-                        [],
-                onTap: () {
-                  _navigateToFullPostDetailsPage(post, context);
-                },
-                showFollowButton: tabTitle == 'Global',
-              );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+      child: ListView.builder(
+        itemCount: tabPosts.length,
+        itemBuilder: (context, index) {
+          final post = tabPosts[index];
+          return PostPreviewCard(
+            name: tabTitle == 'My Posts' ? post['title'] : post['name'],
+            title: tabTitle == 'My Posts' ? post['description'] : post['title'],
+            email: post['email'] ?? '',
+            description: post['description'] ?? '',
+            imageUrls: (post['photos'] as List<dynamic>).map<String>((photo) {
+              if (photo is String) {
+                if (photo.startsWith('http')) {
+                  return photo;
+                } else {
+                  return 'http://188.166.218.202/images/$photo';
+                }
+              }
+              return '';
+            }).toList(),
+            onTap: () {
+              _navigateToFullPostDetailsPage(post, context);
             },
-          ),
-        ),
-      ],
+            showFollowButton: tabTitle == 'Global',
+          );
+        },
+      ),
     );
   }
 }
@@ -275,6 +347,7 @@ class PostPreviewCard extends StatefulWidget {
 class _PostPreviewCardState extends State<PostPreviewCard> {
   bool isFollowing = false;
   void followUser(String userEmail) async {
+    print(userEmail);
     await DatabaseHelper.instance.database;
     List<Map<String, dynamic>> allUserData =
         await DatabaseHelper.instance.getAllUserData();
@@ -287,6 +360,9 @@ class _PostPreviewCardState extends State<PostPreviewCard> {
       );
       if (response.statusCode == 200 &&
           response.body == 'Followed Successfully!!') {
+        setState(() {
+          isFollowing = true;
+        });
       } else {
         print(response.body);
         print('Failed to follow user. Status code: ${response.statusCode}');
@@ -309,6 +385,9 @@ class _PostPreviewCardState extends State<PostPreviewCard> {
       );
       if (response.statusCode == 200 &&
           response.body == 'Unfollowed Successfully!!') {
+        setState(() {
+          isFollowing = false;
+        });
       } else {
         print(response.body);
         print('Failed to unfollow user. Status code: ${response.statusCode}');
@@ -334,24 +413,24 @@ class _PostPreviewCardState extends State<PostPreviewCard> {
               title: Text(widget.name),
               subtitle: Text(widget.title),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: SizedBox(
-                height: 300,
-                width: double.infinity,
-                child: Image.network(
-                  widget.imageUrls.isNotEmpty
-                      ? widget.imageUrls[0]
-                      : '', // Show only the first image
-                  fit: BoxFit.cover,
+            if (widget.imageUrls.isNotEmpty) // Check if imageUrls is not empty
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: Image.network(
+                    widget.imageUrls[0],
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-            ),
             if (widget.showFollowButton)
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton(
                   onPressed: () {
+                    print(widget.email);
                     if (isFollowing) {
                       unfollowUser(widget.email);
                     } else {
@@ -502,7 +581,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
-                if (widget.post['photos'] != null)
+                if (imageUrls.isNotEmpty) // Check if imageUrls is not empty
                   Column(
                     children: List.generate(
                       imageUrls.length,
@@ -925,4 +1004,3 @@ class _AddPostPageState extends State<AddPostPage> {
     widget.onPostAdded(newPost);
   }
 }
-
