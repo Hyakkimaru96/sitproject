@@ -54,18 +54,19 @@ class _SplashScreenState extends State<SplashScreen>
 
             if (response.statusCode == 200) {
               print('Backend response: ${response.body}');
-
-              bool isVerified = response.body == 'true';
-
+              Map<String, dynamic> jsonResponse = json.decode(response.body);
+              bool isVerified = jsonResponse['is_verified'];
+              bool adminApproved = jsonResponse['admin_approved'];
+              print(isVerified);
+              print(adminApproved);
               await DatabaseHelper.instance
-                  .updateIsVerifiedStatus(email, isVerified);
-
-              if (isVerified && mpin != "0000") {
+                  .updateIsVerifiedStatus(email, isVerified, adminApproved);
+              if (mpin != "0000") {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => Dashboard()),
                 );
-              } else if (mpin == "0000") {
+              } else if (mpin == "0000" && isVerified == 'true') {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
@@ -260,8 +261,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
     personMobileNoController.addListener(updateButtonState);
   }
 
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text("Creating User..."),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Define a method to hide the loading dialog
+  void _hideLoadingDialog(BuildContext context) {
+    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VerificationScreen(),
+      ),
+    );
+  }
+
   void updateButtonState() {
-    // Check if all required fields are filled
     if (fullNameController.text.isNotEmpty &&
         emailController.text.isNotEmpty &&
         mobileNoController.text.isNotEmpty &&
@@ -278,6 +307,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _sendDataToServer() async {
+    _showLoadingDialog(context);
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -319,17 +349,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (response.statusCode == 200 &&
         response.body == "Successfully Registered And mail sent!!!") {
       bool _isVerified = false;
+      bool _adminApproved = false;
       try {
         int rowId = await DatabaseHelper.instance.insertUserData(
-          email: emailAddress,
-          name: fullName,
-          phone: mobileNo,
-          city: selectedCity,
-          personName: personName,
-          personPhone: personMobileNo,
-          mpin: '0000',
-          isVerified: _isVerified,
-        );
+            email: emailAddress,
+            name: fullName,
+            phone: mobileNo,
+            city: selectedCity,
+            personName: personName,
+            personPhone: personMobileNo,
+            mpin: '0000',
+            isVerified: _isVerified,
+            profile_pic: 'default_profile_image.jpg',
+            admin_approved: _adminApproved);
         print('Data inserted with row id: $rowId');
       } catch (error) {
         print('Error inserting data: $error');
@@ -341,6 +373,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           builder: (context) => VerificationScreen(),
         ),
       );
+      _hideLoadingDialog(context);
     } else {
       print(
           'Failed to send data to the server. Status code: ${response.statusCode}');
