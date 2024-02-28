@@ -36,9 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void closeKeyboard(BuildContext context) {
-  // FocusScope's unfocus method will close the keyboard
-  FocusScope.of(context).unfocus();
-}
+    // FocusScope's unfocus method will close the keyboard
+    FocusScope.of(context).unfocus();
+  }
 
   void updateLoginButtonState() {
     if (_loginEmailController.text.isNotEmpty &&
@@ -83,11 +83,25 @@ class _LoginScreenState extends State<LoginScreen> {
   void _hideLoadingDialog(BuildContext context) {
     Navigator.of(context).pop();
     Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Dashboard(),
-              ),
-            );
+      context,
+      MaterialPageRoute(
+        builder: (context) => VerificationScreen(),
+      ),
+    );
+  }
+
+  void _hideLoadingDialogsuccess(BuildContext context) {
+    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Dashboard(),
+      ),
+    );
+  }
+
+  void _hide(BuildContext context) {
+    Navigator.of(context).pop();
   }
 
   Future<void> sendLoginCredentials(String email, String mpin) async {
@@ -117,8 +131,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Map<String, dynamic> responseBody = jsonDecode(response.body);
         if (responseBody.containsKey('is_verified')) {
           bool x = responseBody['is_verified'];
-          print(x);
           if (x) {
+            _hideLoadingDialogsuccess(context);
             Fluttertoast.showToast(
               msg: 'Login Success..',
               toastLength: Toast.LENGTH_SHORT,
@@ -126,34 +140,29 @@ class _LoginScreenState extends State<LoginScreen> {
               backgroundColor: Colors.red,
               textColor: Colors.white,
             );
-            bool isVerified = responseBody['is_verified'] == 1;
 
+            bool isVerified = responseBody['is_verified'] == 1;
+            bool adminapproved = responseBody['admin_approved'] == 1;
+            print(isVerified);
+            print(adminapproved);
             await DatabaseHelper.instance.insertUserData(
-              email: responseBody['email'],
-              name: responseBody['name'],
-              phone: responseBody['phone'],
-              city: responseBody['city'],
-              personName: responseBody['personName'],
-              mpin: mpin,
-              personPhone: responseBody['personMobileNo'],
-              isVerified: isVerified,
-            );
+                email: responseBody['email'],
+                name: responseBody['name'],
+                phone: responseBody['phone'],
+                city: responseBody['city'],
+                personName: responseBody['personName'],
+                mpin: mpin,
+                personPhone: responseBody['personMobileNo'],
+                isVerified: isVerified,
+                admin_approved: adminapproved,
+                profile_pic: responseBody['profile_pic']);
+
             FocusScope.of(context).unfocus();
             closeKeyboard(context);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Dashboard(),
-              ),
-            );
           } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VerificationScreen(),
-              ),
-            );
+            _hideLoadingDialog(context);
             bool isVerified = responseBody['is_verified'] == 0;
+            bool adminapproved = responseBody['is_verified'] == 0;
             await DatabaseHelper.instance.insertUserData(
               email: responseBody['email'],
               name: responseBody['name'],
@@ -162,13 +171,25 @@ class _LoginScreenState extends State<LoginScreen> {
               personName: responseBody['personName'],
               mpin: mpin,
               personPhone: responseBody['personMobileNo'],
+              profile_pic: responseBody['profile_pic'],
               isVerified: isVerified,
+              admin_approved: adminapproved,
             );
           }
         }
-      } else {
+      } else if (response.statusCode == 404) {
+        _hide(context);
         Fluttertoast.showToast(
-          msg: '${response.body}. Try again',
+          msg: 'Email does not exist. Try again.',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      } else if (response.statusCode == 401) {
+        _hide(context);
+        Fluttertoast.showToast(
+          msg: 'Password is incorrect. Try again.',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.red,
@@ -260,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       setState(() {
                         _loading = false; // Hide spinner
                       });
-                      _hideLoadingDialog(context);
+
                       FocusScope.of(context).unfocus();
                     }
                   : null, // Disable the button if not all login fields are filled
@@ -396,6 +417,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
       });
     }
   }
+
   void _showLoadingDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -415,16 +437,15 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   }
 
   // Define a method to hide the loading dialog
-  void _hideLoadingDialog(BuildContext context) {
+  void _hideLoadingDialogmpin(BuildContext context) {
     Navigator.of(context).pop();
     Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Dashboard(),
-              ),
-            );
+      context,
+      MaterialPageRoute(
+        builder: (context) => Dashboard(),
+      ),
+    );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -497,7 +518,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
                       setState(() {
                         _loading = false; // Hide spinner
                       });
-                      _hideLoadingDialog(context); // Hide loading dialog
+                      _hideLoadingDialogmpin(context); // Hide loading dialog
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
