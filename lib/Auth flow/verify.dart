@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20flow/login.dart';
-import 'package:sit/Main%20Application/dashboard.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -15,6 +14,7 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   bool _isVerified = false;
+  bool _adminApproved = false;
   bool _isEmailSent = true;
   @override
   void initState() {
@@ -63,13 +63,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
           if (response.statusCode == 200) {
             dynamic responseData = jsonDecode(response.body);
 
-            if (responseData is bool) {
+            if (responseData is Map<String, dynamic>) {
+              bool isVerified = responseData['is_verified'] ?? false;
+              bool adminApproved = responseData['admin_approved'] ?? false;
+
               setState(() {
-                _isVerified = responseData;
+                _isVerified = isVerified;
+                _adminApproved = adminApproved;
               });
-              if (_isVerified) {
+              if (_isVerified && _adminApproved) {
                 await DatabaseHelper.instance
-                    .updateIsVerifiedStatus(email, _isVerified);
+                    .updateIsVerifiedStatus(email, _isVerified, adminApproved);
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
