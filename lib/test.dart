@@ -16,7 +16,7 @@ String apiUrl =
 */
 
 class ProfilePage1 extends StatefulWidget {
-  final String userName, userEmail;
+  final String userName, userEmail, profilePic;
   final String postCount, followingCount, followersCount;
   final bool x;
 
@@ -28,6 +28,7 @@ class ProfilePage1 extends StatefulWidget {
     required this.followersCount,
     required this.postCount,
     required this.x,
+    required this.profilePic,
   }) : super(key: key);
 
   @override
@@ -97,7 +98,10 @@ class _ProfilePage1State extends State<ProfilePage1> {
     return Scaffold(
       body: Column(
         children: [
-          const Expanded(flex: 2, child: _TopPortion()),
+          Expanded(
+            flex: 2,
+            child: _TopPortion(profilePic: widget.profilePic),
+          ),
           Expanded(
             flex: 5,
             child: Padding(
@@ -226,7 +230,8 @@ class ProfileInfoItem {
 }
 
 class _TopPortion extends StatelessWidget {
-  const _TopPortion({Key? key}) : super(key: key);
+  final String profilePic;
+  const _TopPortion({Key? key, required this.profilePic}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -254,13 +259,15 @@ class _TopPortion extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.black,
                     shape: BoxShape.circle,
                     image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: NetworkImage(
-                            'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')),
+                      fit: BoxFit.cover,
+                      image: NetworkImage(
+                        'http://188.166.218.202/profile/$profilePic', // Include profilePic here
+                      ),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -272,14 +279,16 @@ class _TopPortion extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.all(8.0),
                       decoration: const BoxDecoration(
-                          color: Colors.green, shape: BoxShape.circle),
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        )
+        ),
       ],
     );
   }
