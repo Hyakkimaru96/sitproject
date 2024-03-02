@@ -691,13 +691,15 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                                 fontSize: 20, fontWeight: FontWeight.w500)),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 24.0, right: 24),
+                        padding: EdgeInsets.all(8),
                         child: TextField(
                           controller: commentController,
                           decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                            border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10))),
                             hintText: 'Add a comment...',
-                            suffix: IconButton(
+                            suffixIcon: IconButton(
                               onPressed: () {
                                 String newComment =
                                     commentController.text.trim();
@@ -720,9 +722,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 8,
                       ),
                       ListView.builder(
                         shrinkWrap: true,
