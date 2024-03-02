@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:sit/Utilities/Database_helper.dart';
-import 'package:sit/Utilities/global.dart';
+import 'package:dotted_border/dotted_border.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -899,10 +899,20 @@ class _AddPostPageState extends State<AddPostPage> {
                           fontWeight: FontWeight.w600),
                     ),
                   ),
+                  const Text("Title",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
                   _buildTextField(context, _titleController, 'Name'),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  const Text("Description",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
                   _buildTextField(
-                      context, _descriptionController, 'Description'),
-                  SizedBox(
+                      context, _descriptionController, 'Description',
+                      oneLine: false),
+                  const SizedBox(
                     height: 16,
                   ),
                   _buildPhotoPicker(context),
@@ -923,10 +933,13 @@ class _AddPostPageState extends State<AddPostPage> {
   }
 
   Widget _buildTextField(
-      BuildContext context, TextEditingController controller, String hintText) {
+      BuildContext context, TextEditingController controller, String hintText,
+      {bool oneLine = true}) {
     return TextField(
       controller: controller,
-      decoration: InputDecoration(labelText: hintText),
+      decoration: InputDecoration(border: OutlineInputBorder()),
+      maxLines: oneLine ? 1 : null,
+      minLines: oneLine ? 1 : 5,
     );
   }
 
@@ -934,14 +947,42 @@ class _AddPostPageState extends State<AddPostPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton(
-          onPressed: () async {
-            List<XFile>? images = await _pickImages();
-            setState(() {
-              _selectedPhotos = images;
-            });
-          },
-          child: Text('Pick Photos'),
+        AspectRatio(
+          aspectRatio: 16 / 6,
+          child: InkWell(
+            onTap: () async {
+              List<XFile>? images = await _pickImages();
+              setState(() {
+                _selectedPhotos = images;
+              });
+            },
+            child: DottedBorder(
+              strokeWidth: 2,
+              dashPattern: [6, 6],
+              borderType: BorderType.RRect,
+              radius: Radius.circular(16),
+              color: Colors.grey.shade400,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  color: Colors.grey.shade200,
+                ),
+                child: Center(
+                  child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      direction: Axis.vertical,
+                      children: [
+                        Icon(
+                          Icons.upload,
+                          size: 40,
+                          color: Colors.grey.shade700,
+                        ),
+                        Text('Upload Photos'),
+                      ]),
+                ),
+              ),
+            ),
+          ),
         ),
         if (_selectedPhotos != null && _selectedPhotos!.isNotEmpty)
           _buildImagePreview(_selectedPhotos!),
