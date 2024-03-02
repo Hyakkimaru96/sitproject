@@ -715,7 +715,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                                     comments.insert(0, comment);
                                   });
                                   _submitComment(newComment, comment.timestamp);
-                                  Navigator.pop(context);
                                 }
                               },
                               icon: Icon(Icons.send),
