@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
@@ -6,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:sit/Utilities/Database_helper.dart';
+import 'package:sit/Utilities/global.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -522,7 +524,8 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
   @override
   Widget build(BuildContext context) {
     List<String> imageUrls = widget.post['photos']?.cast<String>() ?? [];
-
+    List<String> likedBy = widget.post['liked_by']?.cast<String>() ?? [];
+    TextEditingController commentController = TextEditingController();
     return WillPopScope(
       onWillPop: () async {
         return false;
@@ -609,8 +612,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                     ),
                     InkWell(
                       onTap: () {
-                        List<Map<String, String>> likes = [];
-
                         showDialog(
                           context: context,
                           builder: (context) {
@@ -618,13 +619,36 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25)),
                                 clipBehavior: Clip.antiAlias,
-                                child: ListView(children: [
-                                  ...List.generate(likes.length, (index) {
+                                child: ListView(shrinkWrap: true, children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0)
+                                        .copyWith(bottom: 0),
+                                    child: const Text(
+                                      "Likes",
+                                      style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w400),
+                                    ),
+                                  ),
+                                  ...List.generate(likedBy.length, (index) {
+                                    // generate random color
+                                    Color generateRandomColor() {
+                                      final random = Random();
+                                      return Color.fromARGB(
+                                        255,
+                                        random.nextInt(156),
+                                        random.nextInt(156),
+                                        random.nextInt(156),
+                                      );
+                                    }
+
                                     return ListTile(
                                       leading: CircleAvatar(
-                                        child: Icon(Icons.person),
+                                        backgroundColor: generateRandomColor(),
+                                        foregroundColor: Colors.white,
+                                        child: const Icon(Icons.person),
                                       ),
-                                      title: Text('User'),
+                                      title: Text(likedBy[index]),
                                     );
                                   })
                                 ]));
@@ -633,46 +657,91 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text("Likes"),
+                        child: Text("Likes: ${likedBy.length.toString()} "),
                       ),
+                    ),
+                    SizedBox(
+                      width: 15,
+                    ),
+                    Icon(
+                      Icons.comment,
+                      color: Colors.blue,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text("Comments: ${comments.length.toString()}"),
                     ),
                   ],
                 ),
-                if (comments.isNotEmpty)
-                  Column(
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Comments:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Divider(
+                        height: 5,
                       ),
-                      SizedBox(height: 8),
-                      Container(
-                        height: 200,
-                        child: ListView.builder(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          itemCount: comments.length,
-                          itemBuilder: (context, index) {
-                            Comment comment = comments[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                child: Icon(Icons.person, size: 16.0),
-                              ),
-                              title: Text(comment.person),
-                              subtitle: Text(comment.text),
-                            );
-                          },
+                      SizedBox(
+                        height: 5,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text("Comments",
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.w500)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 24.0, right: 24),
+                        child: TextField(
+                          controller: commentController,
+                          decoration: InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                            hintText: 'Add a comment...',
+                            suffix: IconButton(
+                              onPressed: () {
+                                String newComment =
+                                    commentController.text.trim();
+                                if (newComment.isNotEmpty) {
+                                  Comment comment = Comment(
+                                    url:
+                                        'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
+                                    text: newComment,
+                                    person: "You",
+                                    timestamp: _formatTimestamp(DateTime.now()),
+                                  );
+                                  setState(() {
+                                    comments.insert(0, comment);
+                                  });
+                                  _submitComment(newComment, comment.timestamp);
+                                  Navigator.pop(context);
+                                }
+                              },
+                              icon: Icon(Icons.send),
+                            ),
+                          ),
                         ),
+                      ),
+                      SizedBox(
+                        height: 8,
+                      ),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: comments.length,
+                        itemBuilder: (context, index) {
+                          Comment comment = comments[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              child: Icon(Icons.person, size: 16.0),
+                            ),
+                            title: Text(comment.person),
+                            subtitle: Text(comment.text),
+                          );
+                        },
                       ),
                       SizedBox(height: 16),
                     ],
                   ),
-
-                ElevatedButton(
-                  onPressed: () {
-                    _showCommentDialog(context);
-                  },
-                  child: Text('Add Comment'),
                 ),
               ],
             ),
@@ -712,48 +781,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
     } catch (e) {
       print('Error ${isLiked ? 'unliking' : 'liking'} the post: $e');
     }
-  }
-
-  void _showCommentDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        TextEditingController commentController = TextEditingController();
-
-        return AlertDialog(
-          title: Text('Add a Comment'),
-          content: Column(
-            children: [
-              TextField(
-                controller: commentController,
-                decoration: InputDecoration(labelText: 'Your Comment'),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  String newComment = commentController.text.trim();
-                  if (newComment.isNotEmpty) {
-                    Comment comment = Comment(
-                      url:
-                          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-                      text: newComment,
-                      person: "You",
-                      timestamp: _formatTimestamp(DateTime.now()),
-                    );
-                    setState(() {
-                      comments.insert(0, comment);
-                    });
-                    _submitComment(newComment, comment.timestamp);
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('Submit Comment'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _submitComment(String newComment, String time) async {
