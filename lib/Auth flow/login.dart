@@ -132,17 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
         if (responseBody.containsKey('is_verified')) {
           bool x = responseBody['is_verified'];
           if (x) {
-            _hideLoadingDialogsuccess(context);
-            Fluttertoast.showToast(
-              msg: 'Login Success..',
-              toastLength: Toast.LENGTH_SHORT,
-              gravity: ToastGravity.BOTTOM,
-              backgroundColor: Colors.red,
-              textColor: Colors.white,
-            );
+            bool isVerified = responseBody['is_verified'];
+            bool adminapproved = responseBody['admin_approved'];
 
-            bool isVerified = responseBody['is_verified'] == 1;
-            bool adminapproved = responseBody['admin_approved'] == 1;
             print(isVerified);
             print(adminapproved);
             await DatabaseHelper.instance.insertUserData(
@@ -156,13 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 isVerified: isVerified,
                 admin_approved: adminapproved,
                 profile_pic: responseBody['profile_pic']);
-
+            _hideLoadingDialogsuccess(context);
+            Fluttertoast.showToast(
+              msg: 'Login Success..',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+            );
             FocusScope.of(context).unfocus();
             closeKeyboard(context);
           } else {
             _hideLoadingDialog(context);
-            bool isVerified = responseBody['is_verified'] == 0;
-            bool adminapproved = responseBody['is_verified'] == 0;
+            bool isVerified = responseBody['is_verified'];
+            bool adminapproved = responseBody['admin_approved'];
             await DatabaseHelper.instance.insertUserData(
               email: responseBody['email'],
               name: responseBody['name'],
