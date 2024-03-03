@@ -631,7 +631,6 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                                     ),
                                   ),
                                   ...List.generate(likedBy.length, (index) {
-                                    // generate random color
                                     Color generateRandomColor() {
                                       final random = Random();
                                       return Color.fromARGB(
