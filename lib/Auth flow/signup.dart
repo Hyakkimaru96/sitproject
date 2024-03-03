@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:sit/Auth%20Flow/login.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sit/Main%20Application/dashboard.dart';
@@ -12,6 +14,7 @@ import 'package:sit/Utilities/firebase_options.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
+import 'package:sit/error.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -34,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
       setState(() {
         userDataCount = count ?? 0;
       });
-
+      print(userDataCount);
       if (userDataCount == 1) {
         await DatabaseHelper.instance.database;
         List<Map<String, dynamic>> allUserData =
@@ -79,9 +82,24 @@ class _SplashScreenState extends State<SplashScreen>
               }
             } else {
               print('Backend error: ${response.statusCode}, ${response.body}');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ErrorScreen(errorMessage: "${response.body}"),
+                ),
+              );
             }
-          } catch (e) {
-            print('Error during HTTP request: $e');
+          } on IOException catch (e) {
+            print("Error : $e");
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ErrorScreen(
+                    errorMessage:
+                        'Internet Error: Please check your network connection'),
+              ),
+            );
           }
         }
       } else if (userDataCount == 0) {
