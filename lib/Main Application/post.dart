@@ -872,10 +872,20 @@ class _AddPostPageState extends State<AddPostPage> {
   final TextEditingController _descriptionController = TextEditingController();
   List<XFile>? _selectedPhotos;
   final ImagePicker _imagePicker = ImagePicker();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Add Post'),
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -921,11 +931,10 @@ class _AddPostPageState extends State<AddPostPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _addPost();
-          Navigator.pop(context);
-        },
-        child: Icon(Icons.done),
+        onPressed: _isLoading ? null : _addPost,
+        child: _isLoading
+            ? CircularProgressIndicator()
+            : Icon(Icons.done),
       ),
     );
   }
@@ -954,31 +963,8 @@ class _AddPostPageState extends State<AddPostPage> {
                 _selectedPhotos = images;
               });
             },
-            child: DottedBorder(
-              strokeWidth: 2,
-              dashPattern: [6, 6],
-              borderType: BorderType.RRect,
-              radius: Radius.circular(16),
-              color: Colors.grey.shade400,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16.0),
-                  color: Colors.grey.shade200,
-                ),
-                child: Center(
-                  child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      direction: Axis.vertical,
-                      children: [
-                        Icon(
-                          Icons.upload,
-                          size: 40,
-                          color: Colors.grey.shade700,
-                        ),
-                        Text('Upload Photos'),
-                      ]),
-                ),
-              ),
+            child: Container(
+              // Photo picker container
             ),
           ),
         ),
@@ -1032,6 +1018,19 @@ class _AddPostPageState extends State<AddPostPage> {
   }
 
   void _addPost() async {
+    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Title and Description cannot be empty!'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
     await DatabaseHelper.instance.database;
     List<Map<String, dynamic>> allUserData =
         await DatabaseHelper.instance.getAllUserData();
@@ -1067,5 +1066,11 @@ class _AddPostPageState extends State<AddPostPage> {
     }
     print('New Post: $newPost');
     widget.onPostAdded(newPost);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context);
   }
 }
