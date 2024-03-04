@@ -870,71 +870,100 @@ class AddPostPage extends StatefulWidget {
 class _AddPostPageState extends State<AddPostPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
   List<XFile>? _selectedPhotos;
   final ImagePicker _imagePicker = ImagePicker();
-  bool _isLoading = false;
+  bool _isCreatingPost = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Post'),
-        leading: IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 32,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
+                        child: Text(
+                          "Add Post",
+                          style: TextStyle(
+                              fontSize: 32,
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const Text("Title",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w400)),
+                      _buildTextField(context, _titleController, 'Name'),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      const Text("Description",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w400)),
+                      _buildTextField(
+                          context, _descriptionController, 'Description',
+                          oneLine: false),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      _buildPhotoPicker(context),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      const Text("Links",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w400)),
+                      _buildTextField(
+                        context,
+                        _linkController,
+                        'Link',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isCreatingPost)
+      Container(
+        color: Colors.black.withOpacity(0.5),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Creating Post',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    height: 32,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 32 - 8, 24, 04),
-                    child: Text(
-                      "Add Post",
-                      style: TextStyle(
-                          fontSize: 32,
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const Text("Title",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
-                  _buildTextField(context, _titleController, 'Name'),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  const Text("Description",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
-                  _buildTextField(
-                      context, _descriptionController, 'Description',
-                      oneLine: false),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  _buildPhotoPicker(context),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _isLoading ? null : _addPost,
-        child: _isLoading
-            ? CircularProgressIndicator()
-            : Icon(Icons.done),
+        onPressed: () {
+          _addPost();
+        },
+        child: Icon(Icons.done),
       ),
     );
   }
@@ -963,8 +992,32 @@ class _AddPostPageState extends State<AddPostPage> {
                 _selectedPhotos = images;
               });
             },
-            child: Container(
-              // Photo picker container
+            child: DottedBorder(
+              strokeWidth: 2,
+              dashPattern: [6, 6],
+              borderType: BorderType.RRect,
+              radius: Radius.circular(16),
+              color: Colors.grey.shade400,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  color: Colors.grey.shade200,
+                ),
+                child: Center(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    direction: Axis.vertical,
+                    children: [
+                      Icon(
+                        Icons.upload,
+                        size: 40,
+                        color: Colors.grey.shade700,
+                      ),
+                      Text('Upload Photos'),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -979,7 +1032,8 @@ class _AddPostPageState extends State<AddPostPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 8),
-        Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Selected Photos:',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(
           height: 100,
           child: ListView.builder(
@@ -1017,60 +1071,106 @@ class _AddPostPageState extends State<AddPostPage> {
     }
   }
 
-  void _addPost() async {
-    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Title and Description cannot be empty!'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    await DatabaseHelper.instance.database;
-    List<Map<String, dynamic>> allUserData =
-        await DatabaseHelper.instance.getAllUserData();
-    String localEmail = allUserData.first['email'];
-    final newPost = {
-      'email': localEmail,
-      'title': _titleController.text,
-      'description': _descriptionController.text,
-      'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
-    };
-    try {
-      var request = http.MultipartRequest(
-          'POST', Uri.parse('http://188.166.218.202/upload'));
-      newPost.forEach((key, value) {
-        request.fields[key] = value.toString();
-      });
-      if (_selectedPhotos != null) {
-        for (var i = 0; i < _selectedPhotos!.length; i++) {
-          var file = await http.MultipartFile.fromPath(
-            'photos',
-            _selectedPhotos![i].path,
-          );
-          request.files.add(file);
-        }
-      }
-
-      var response = await http.Response.fromStream(await request.send());
-      print('Server Response: ${response.body}');
-
-      widget.onPostAdded(newPost);
-    } catch (e) {
-      print('Error uploading images: $e');
-    }
-    print('New Post: $newPost');
-    widget.onPostAdded(newPost);
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pop(context);
+void _addPost() async {
+  // Check if title and description are not empty
+  if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Error"),
+          content: Text("Title and description cannot be empty."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+    return;
   }
+
+  // Validate the link format if it's not empty
+  String link = _linkController.text.trim();
+  if (link.isNotEmpty) {
+    // Regular expression to validate website or social media handle
+    RegExp regExp = RegExp(
+      r"^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})(?:\/\S*)?$",
+    );
+    if (!regExp.hasMatch(link)) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Error"),
+            content: Text("Invalid link format."),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+      return; // Do not proceed further if link format is invalid
+    }
+  }
+
+  // Show loading spinner while sending the post
+  setState(() {
+    _isCreatingPost = true;
+  });
+
+  // If all conditions are satisfied, proceed with sending the post to the server
+  await DatabaseHelper.instance.database;
+  List<Map<String, dynamic>> allUserData =
+      await DatabaseHelper.instance.getAllUserData();
+  String localEmail = allUserData.first['email'];
+  final newPost = {
+    'email': localEmail,
+    'title': _titleController.text,
+    'description': _descriptionController.text,
+    'link': link,
+    'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
+  };
+  try {
+    var request = http.MultipartRequest(
+        'POST', Uri.parse('http://188.166.218.202/upload'));
+    newPost.forEach((key, value) {
+      request.fields[key] = value.toString();
+    });
+    if (_selectedPhotos != null) {
+      for (var i = 0; i < _selectedPhotos!.length; i++) {
+        var file = await http.MultipartFile.fromPath(
+          'photos',
+          _selectedPhotos![i].path,
+        );
+        request.files.add(file);
+      }
+    }
+
+    var response = await http.Response.fromStream(await request.send());
+    print('Server Response: ${response.body}');
+
+    // Notify the parent widget about the new post
+    widget.onPostAdded(newPost);
+  } catch (e) {
+    print('Error uploading images: $e');
+  } finally {
+    // Hide loading spinner
+    setState(() {
+      _isCreatingPost = false;
+    });
+    Navigator.pop(context); // Close the add post page after creating the post
+  }
+}
+
+
 }
