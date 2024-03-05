@@ -11,38 +11,6 @@ void main() {
   runApp(ProfileApp());
 }
 
-class Post {
-  final String postId;
-  final String title;
-  final String description;
-  final List<String> likedBy;
-  final List<String> photos;
-  final int likes;
-  final List<dynamic> comments;
-
-  Post({
-    required this.postId,
-    required this.title,
-    required this.description,
-    required this.likedBy,
-    required this.photos,
-    required this.likes,
-    required this.comments,
-  });
-
-  factory Post.fromJson(Map<String, dynamic> json) {
-    return Post(
-      postId: json['postid'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      likedBy: List<String>.from(json['liked_by'] ?? []),
-      photos: List<String>.from(json['images'] ?? []),
-      likes: json['likes'] ?? 0,
-      comments: List<dynamic>.from(json['comments'] ?? []),
-    );
-  }
-}
-
 class ProfileApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -121,6 +89,8 @@ class _UserProfileState extends State<UserProfile> {
   String? userEmail = '';
   String? userPhone = '';
   String? profile_pic = '';
+  String? intro = '';
+  String? website = '';
 
   bool isEditMode = false;
   @override
@@ -181,57 +151,22 @@ class _UserProfileState extends State<UserProfile> {
       print('Person Phone: ${userData['personPhone']}');
       print('mPIN: ${userData['mpin']}');
       print('Is Verified: ${userData['is_verified'] == 1 ? true : false}');
+      print('Intro : ${userData['intro']}');
+      print('Website : ${userData['website']}');
       print('Profile pic: ${userData['profile_pic']}');
       setState(() {
         userName = userData['name'] ?? '';
         userEmail = userData['email'] ?? '';
         userPhone = userData['phone'] ?? '';
+        website = userData['website'] ?? '';
+        intro = userData['intro'] ?? '';
         selectedCity = userData['city'] ?? citiesInTamilNadu[0];
-        profile_pic = userData[
-            'profile_pic']; // Default to the first city if not available
+        profile_pic = userData['profile_pic'];
       });
     } else {
       print('User not found!');
     }
     // Initialize variables with fetched data
-  }
-
-  Future<List<Post>> fetchPosts() async {
-    await DatabaseHelper.instance.database;
-    List<Map<String, dynamic>> allUserData =
-        await DatabaseHelper.instance.getAllUserData();
-
-    // Check if allUserData is not empty
-    if (allUserData.isNotEmpty) {
-      String localEmail = allUserData.first['email'];
-      final String apiUrl = 'http://188.166.218.202/getPostsbyUser';
-
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        body: {'email': localEmail},
-      );
-
-      if (response.statusCode == 200) {
-        Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-        if (jsonResponse.containsKey("posts")) {
-          List<dynamic> fetchedPosts = jsonResponse["posts"];
-          List<Post> posts = fetchedPosts.map<Post>((post) {
-            print(post);
-            return Post.fromJson(post);
-          }).toList();
-          return posts;
-        } else {
-          print("No posts found in the response.");
-          return [];
-        }
-      } else {
-        print("Error: ${response.statusCode}");
-        return [];
-      }
-    } else {
-      print("No user data found.");
-      return [];
-    }
   }
 
   @override
@@ -286,10 +221,9 @@ class _UserProfileState extends State<UserProfile> {
                 textPrettier(context, 'Email', userEmail!, isEditMode),
                 textPrettier(context, 'Phone', userPhone!, isEditMode),
                 textPrettier(context, 'City', selectedCity!, isEditMode),
-                textPrettier(context, 'Professional Intro',
-                    'Software Developer', isEditMode),
+                textPrettier(context, 'Professional Intro', intro, isEditMode),
                 textPrettier(context, 'Websites / Social Media Handle Link',
-                    'https://example.com', isEditMode),
+                    website, isEditMode),
                 SizedBox(height: 20),
                 // Display posts below other information
               ],
