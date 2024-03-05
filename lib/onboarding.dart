@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sit/Main%20Application/dashboard.dart';
+import 'dart:convert';
 import 'package:sit/Utilities/Database_helper.dart';
 
 class OnBoardPage extends StatefulWidget {
@@ -16,8 +19,41 @@ class OnBoardPage extends StatefulWidget {
 class _OnBoardPageState extends State<OnBoardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController introController = TextEditingController();
-  List<XFile>? _selectedPhotos;
-  final ImagePicker _imagePicker = ImagePicker();
+  File? _profileImage;
+  String? profile_pic = '';
+  void _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+        uploadImage(_profileImage!);
+      });
+    }
+  }
+
+  Future<void> uploadImage(File imageFile) async {
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    final url = Uri.parse('http://188.166.218.202/uploadpp');
+    final request = http.MultipartRequest('POST', url);
+    request.files
+        .add(await http.MultipartFile.fromPath('image', imageFile.path));
+    request.fields['email'] = localEmail;
+
+    final response = await request.send();
+    String responseBody = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      print('Image uploaded successfully');
+      print(responseBody);
+      await DatabaseHelper.instance.updateProfilepp(localEmail, responseBody);
+    } else {
+      print('Failed to upload image. Status code: ${response.statusCode}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +90,35 @@ class _OnBoardPageState extends State<OnBoardPage> {
                     const SizedBox(
                       height: 32,
                     ),
-                    _buildPhotoPicker(context),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors
+                            .grey, // Add a background color for the avatar
+                        child: _profileImage != null
+                            ? ClipOval(
+                                child: Image.file(
+                                  File(_profileImage!.path),
+                                  fit: BoxFit.cover,
+                                  width:
+                                      120, // Optional: Set the width and height of the image
+                                  height: 120,
+                                ),
+                              )
+                            : _profileImage == null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      'http://188.166.218.202/profile/default_profile_image.jpg',
+                                      fit: BoxFit.cover,
+                                      width:
+                                          120, // Optional: Set the width and height of the image
+                                      height: 120,
+                                    ),
+                                  )
+                                : null,
+                      ),
+                    ),
                     const SizedBox(
                       height: 16,
                     ),
@@ -90,7 +154,49 @@ class _OnBoardPageState extends State<OnBoardPage> {
           height: 100,
           padding: const EdgeInsets.all(16),
           child: InkWell(
-            onTap: () async {},
+            onTap: () async {
+              await DatabaseHelper.instance.database;
+              List<Map<String, dynamic>> allUserData =
+                  await DatabaseHelper.instance.getAllUserData();
+              String localEmail = allUserData.first['email'];
+              String apiUrl = 'http://188.166.218.202/additional';
+              Map<String, String> headers = {
+                'Content-Type': 'application/json'
+              };
+              Map<String, dynamic> body = {
+                'website': _titleController.text,
+                'intro': introController.text,
+                'email': localEmail
+              };
+              try {
+                http.Response response = await http.post(
+                  Uri.parse(apiUrl),
+                  headers: headers,
+                  body: jsonEncode(body),
+                );
+                if (response.statusCode == 200) {
+                  await DatabaseHelper.instance.insertAdditional(
+                      email: localEmail,
+                      website: _titleController.text,
+                      intro: introController.text);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Dashboard(),
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('Error during HTTP request: $e');
+                Fluttertoast.showToast(
+                  msg: 'Error during adding information. Please try again.',
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.red,
+                  textColor: Colors.white,
+                );
+              }
+            },
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -122,103 +228,4 @@ class _OnBoardPageState extends State<OnBoardPage> {
       minLines: oneLine ? 1 : 5,
     );
   }
-
-  Widget _buildPhotoPicker(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () async {
-            List<XFile>? images = await _pickImages();
-            setState(() {
-              _selectedPhotos = images;
-            });
-          },
-          child: Wrap(
-            children: [
-              Center(
-                child: SizedBox(
-                  width: 48 * 2,
-                  height: 48 * 2,
-                  child: DottedBorder(
-                      strokeWidth: 2,
-                      dashPattern: [6, 6],
-                      borderType: BorderType.RRect,
-                      radius: Radius.circular(48),
-                      color: Colors.grey.shade400,
-                      child: CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Colors.grey.shade200,
-                          child: Icon(
-                            Icons.upload,
-                            size: 40,
-                            color: Colors.grey.shade600,
-                          ))),
-                ),
-              ),
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Upload Your Profile Picture',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImagePreview(List<XFile> images) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 8),
-        Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(
-          height: 100,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              return _buildImageItem(images[index].path);
-            },
-          ),
-        ),
-        SizedBox(height: 8),
-      ],
-    );
-  }
-
-  Widget _buildImageItem(String imagePath) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
-        child: Image.file(
-          File(imagePath),
-          fit: BoxFit.fill,
-        ),
-      ),
-    );
-  }
-
-  Future<List<XFile>?> _pickImages() async {
-    try {
-      return await _imagePicker.pickMultiImage();
-    } catch (e) {
-      print('Error picking images: $e');
-      return null;
-    }
-  }
-
-  void _addPost() async {}
 }
