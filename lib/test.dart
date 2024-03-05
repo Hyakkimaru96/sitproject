@@ -348,6 +348,7 @@ class _PostPage2State extends State<PostPage2> {
               'liked_by': List<String>.from(post['liked_by'] ?? []),
               'photos': List<String>.from(post['images'] ?? []),
               'likes': post['likes'] ?? 0,
+              'links': post['links'] ?? '',
               'comments': List<List<dynamic>>.from(post['comments'] ?? []),
             };
           }).toList();
@@ -393,6 +394,9 @@ class _PostPage2State extends State<PostPage2> {
                 itemBuilder: (context, index) {
                   final post = posts[index];
                   return PostPreviewCard(
+                    onDelete: delete,
+                    postId: post['postid'],
+                    link: post['links'] ?? '',
                     name: post['name'],
                     email: post['email'] ?? '',
                     title: post['title'],
@@ -421,4 +425,6 @@ class _PostPage2State extends State<PostPage2> {
       ),
     );
   }
+
+  delete(String p1) {}
 }
