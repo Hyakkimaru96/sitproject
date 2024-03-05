@@ -377,9 +377,31 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: 'Reset Mail sent!!',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
         print(
             'Reset email sent successfully. Backend response: ${response.body}');
+      } else if (response.statusCode == 501) {
+        Fluttertoast.showToast(
+          msg: 'User not found..',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       } else {
+        Fluttertoast.showToast(
+          msg: 'Error sending reset email: ${response.body}',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
         print(
             'Error sending reset email: ${response.statusCode}, ${response.body}');
       }
