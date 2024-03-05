@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sit/Auth%20flow/login.dart';
+import 'package:sit/Main%20Application/dashboard.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+
+import 'package:sit/onboarding.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen();
@@ -71,12 +74,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 _isVerified = isVerified;
                 _adminApproved = adminApproved;
               });
-              if (_isVerified && _adminApproved) {
+              if (_isVerified) {
                 await DatabaseHelper.instance
                     .updateIsVerifiedStatus(email, _isVerified, adminApproved);
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
+                  MaterialPageRoute(builder: (context) => OnBoardPage()),
                 );
               }
             } else {
