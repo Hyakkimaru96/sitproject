@@ -37,7 +37,9 @@ class DatabaseHelper {
         mpin TEXT,
         profile_pic TEXT,
         is_verified INTEGER,
-        admin_approved INTEGER
+        admin_approved INTEGER,
+        website TEXT,
+        intro TEXT
       )
     ''');
   }
@@ -172,5 +174,25 @@ class DatabaseHelper {
       'is_verified': isVerified ? 1 : 0,
     };
     return await db.insert('users', userData);
+  }
+
+  Future<void> insertAdditional({
+    required String email,
+    required String website,
+    required String intro,
+  }) async {
+    Database db = await database;
+
+    Map<String, dynamic> userData = {
+      'website': website,
+      'intro': intro,
+    };
+    await db.update(
+      'users',
+      userData,
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    print('Updated');
   }
 }
