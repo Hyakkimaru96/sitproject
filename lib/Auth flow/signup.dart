@@ -15,6 +15,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:sit/error.dart';
+import 'package:sit/onboarding.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -45,6 +46,12 @@ class _SplashScreenState extends State<SplashScreen>
         for (var userData in allUserData) {
           String email = userData['email'];
           String mpin = userData['mpin'];
+          String? intro = userData['intro'];
+          if (intro != null) {
+            print('Intro: $intro');
+          } else {
+            print('Intro is null');
+          }
           String apiUrl = 'http://188.166.218.202/check_verified';
           Map<String, String> headers = {'Content-Type': 'application/json'};
           Map<String, dynamic> body = {'email': email};
@@ -62,24 +69,32 @@ class _SplashScreenState extends State<SplashScreen>
               bool adminApproved = jsonResponse['admin_approved'];
               print(isVerified);
               print(adminApproved);
-              await DatabaseHelper.instance
-                  .updateIsVerifiedStatus(email, isVerified, adminApproved);
-              if (mpin != "0000") {
+
+              if (mpin != "0000" && isVerified == true && intro != null) {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => Dashboard()),
                 );
-              } else if (mpin == "0000" && isVerified == 'true') {
+              } else if (mpin != "0000" &&
+                  isVerified == true &&
+                  intro == null) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => OnBoardPage()),
+                );
+              } else if (mpin == "0000") {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => SetMasterpinScreen()),
                 );
-              } else {
+              } else if (isVerified == false && mpin != "0000") {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => VerificationScreen()),
                 );
               }
+              await DatabaseHelper.instance
+                  .updateIsVerifiedStatus(email, isVerified, adminApproved);
             } else {
               print('Backend error: ${response.statusCode}, ${response.body}');
               Navigator.pushReplacement(
@@ -103,12 +118,10 @@ class _SplashScreenState extends State<SplashScreen>
           }
         }
       } else if (userDataCount == 0) {
-        Timer(Duration(seconds: 2), () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SignUpScreen()),
-          );
-        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SignUpScreen()),
+        );
       } else {
         Fluttertoast.showToast(
           msg:
@@ -147,7 +160,10 @@ class _SplashScreenState extends State<SplashScreen>
             Timer(Duration(seconds: 2), () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => SignUpScreen()),
+                MaterialPageRoute(
+                    builder: (context) => ErrorScreen(
+                          errorMessage: "Unable to load...",
+                        )),
               );
             });
           } else {
@@ -303,7 +319,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => VerificationScreen(),
+        builder: (context) => SetMasterpinScreen(),
       ),
     );
   }
@@ -385,12 +401,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         print('Error inserting data: $error');
       }
       print('Server response: ${response.body}');
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VerificationScreen(),
-        ),
-      );
       _hideLoadingDialog(context);
     } else {
       print(
