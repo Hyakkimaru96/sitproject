@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
@@ -118,6 +119,7 @@ class _PostPageState extends State<PostPage>
               'photos': List<String>.from(p['images'] ?? []),
               'likes': p['likes'] ?? 0,
               'comments': List<List<dynamic>>.from(p['comments'] ?? []),
+              'links': p['links'] ?? '',
             };
           }).toList();
         });
@@ -158,6 +160,7 @@ class _PostPageState extends State<PostPage>
                 'photos': List<String>.from(p['images'] ?? []),
                 'likes': p['likes'] ?? 0,
                 'comments': List<List<dynamic>>.from(p['comments'] ?? []),
+                'links': p['links'] ?? '',
               };
             }).toList();
           });
@@ -202,6 +205,7 @@ class _PostPageState extends State<PostPage>
               'likes': post['likes'] ?? 0,
               'profile_pic': post['profile_pic'] ?? '',
               'comments': List<List<dynamic>>.from(post['comments'] ?? []),
+              'links': post['links'] ?? '',
             };
           }).toList();
         });
@@ -298,9 +302,12 @@ class _PostPageState extends State<PostPage>
         itemCount: tabPosts.length,
         itemBuilder: (context, index) {
           final post = tabPosts[index];
+          bool isMyPost = tabTitle == "My Posts";
           return PostPreviewCard(
-            name: tabTitle == 'My Posts' ? post['title'] : post['name'],
-            title: tabTitle == 'My Posts' ? post['description'] : post['title'],
+            postId: post['postid'],
+            link: post['links'] ?? '',
+            name: isMyPost ? post['title'] : post['name'],
+            title: isMyPost ? post['description'] : post['title'],
             email: post['email'] ?? '',
             description: post['description'] ?? '',
             imageUrls: (post['photos'] as List<dynamic>).map<String>((photo) {
@@ -317,37 +324,71 @@ class _PostPageState extends State<PostPage>
               _navigateToFullPostDetailsPage(post, context);
             },
             showFollowButton: tabTitle == 'Global',
+            isMyPost: tabTitle == "My Posts",
+            onDelete: deletePost,
           );
         },
       ),
     );
+  }
+
+  void deletePost(String postId) async {
+    final String apiUrl = 'http://188.166.218.202/deletePost';
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'postId': postId,
+        },
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          myposts.removeWhere((post) => post['postid'] == postId);
+        });
+      } else {
+        print('Failed to delete post. Error: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error deleting post: $e');
+    }
   }
 }
 
 class PostPreviewCard extends StatefulWidget {
   final String title;
   final String email;
+  final String postId;
   final String name;
+  final String? link;
   final String description;
   final List<String> imageUrls;
   final VoidCallback onTap;
   final bool showFollowButton;
+  final bool isMyPost;
+  final Function(String) onDelete;
 
   PostPreviewCard({
+    required this.postId,
     required this.email,
     required this.name,
+    required this.link,
     required this.title,
     required this.description,
     required this.imageUrls,
     required this.onTap,
     this.showFollowButton = false,
+    this.isMyPost = false,
+    required this.onDelete,
   });
+
   @override
   _PostPreviewCardState createState() => _PostPreviewCardState();
 }
 
 class _PostPreviewCardState extends State<PostPreviewCard> {
   bool isFollowing = false;
+
   void followUser(String userEmail) async {
     print(userEmail);
     await DatabaseHelper.instance.database;
@@ -406,14 +447,35 @@ class _PostPreviewCardState extends State<PostPreviewCard> {
       child: InkWell(
         onTap: widget.onTap,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
               tileColor: Colors.transparent.withAlpha(0),
               leading: CircleAvatar(
                 child: Icon(Icons.person, size: 16.0),
               ),
-              title: Text(widget.name),
-              subtitle: Text(widget.title),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(widget.name),
+                  ),
+                  if (widget.isMyPost)
+                    IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        widget.onDelete(widget.postId);
+                      },
+                    ),
+                ],
+              ),
+              subtitle: Row(
+                children: [
+                  Expanded(
+                    child: Text(widget.title),
+                  ),
+                  SizedBox(width: 8), // Add some spacing
+                ],
+              ),
             ),
             if (widget.imageUrls.isNotEmpty) // Check if imageUrls is not empty
               Padding(
@@ -429,20 +491,22 @@ class _PostPreviewCardState extends State<PostPreviewCard> {
               ),
             if (widget.showFollowButton)
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    print(widget.email);
-                    if (isFollowing) {
-                      unfollowUser(widget.email);
-                    } else {
-                      followUser(widget.email);
-                    }
-                    setState(() {
-                      isFollowing = !isFollowing;
-                    });
-                  },
-                  child: Text(isFollowing ? 'Following' : 'Follow'),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      print(widget.email);
+                      if (isFollowing) {
+                        unfollowUser(widget.email);
+                      } else {
+                        followUser(widget.email);
+                      }
+                      setState(() {
+                        isFollowing = !isFollowing;
+                      });
+                    },
+                    child: Text(isFollowing ? 'Following' : 'Follow'),
+                  ),
                 ),
               ),
           ],
@@ -526,6 +590,8 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
     List<String> imageUrls = widget.post['photos']?.cast<String>() ?? [];
     List<String> likedBy = widget.post['liked_by']?.cast<String>() ?? [];
     TextEditingController commentController = TextEditingController();
+    String? link = widget.post['links'];
+
     return WillPopScope(
       onWillPop: () async {
         return false;
@@ -584,7 +650,23 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
-                if (imageUrls.isNotEmpty) // Check if imageUrls is not empty
+                if (link != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        _launchURL('https://www.google.com');
+                      },
+                      child: Text(
+                        link,
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (imageUrls.isNotEmpty)
                   Column(
                     children: List.generate(
                       imageUrls.length,
@@ -597,8 +679,7 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
                       ),
                     ),
                   ),
-                SizedBox(
-                    height: 16), // Add some space between photos and comments
+                SizedBox(height: 16),
                 Row(
                   children: [
                     IconButton(
@@ -746,6 +827,14 @@ class _FullPostDetailsPageState extends State<FullPostDetailsPage> {
         ),
       ),
     );
+  }
+
+  void _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   void _likePost(String id) async {
@@ -936,27 +1025,27 @@ class _AddPostPageState extends State<AddPostPage> {
             ),
           ),
           if (_isCreatingPost)
-      Container(
-        color: Colors.black.withOpacity(0.5),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Creating Post',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Creating Post',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -1032,8 +1121,7 @@ class _AddPostPageState extends State<AddPostPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 8),
-        Text('Selected Photos:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(
           height: 100,
           child: ListView.builder(
@@ -1071,43 +1159,15 @@ class _AddPostPageState extends State<AddPostPage> {
     }
   }
 
-void _addPost() async {
-  // Check if title and description are not empty
-  if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Error"),
-          content: Text("Title and description cannot be empty."),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-    return;
-  }
-
-  // Validate the link format if it's not empty
-  String link = _linkController.text.trim();
-  if (link.isNotEmpty) {
-    // Regular expression to validate website or social media handle
-    RegExp regExp = RegExp(
-      r"^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})(?:\/\S*)?$",
-    );
-    if (!regExp.hasMatch(link)) {
+  void _addPost() async {
+    // Check if title and description are not empty
+    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("Error"),
-            content: Text("Invalid link format."),
+            content: Text("Title and description cannot be empty."),
             actions: <Widget>[
               TextButton(
                 onPressed: () {
@@ -1119,58 +1179,84 @@ void _addPost() async {
           );
         },
       );
-      return; // Do not proceed further if link format is invalid
+      return;
     }
-  }
 
-  // Show loading spinner while sending the post
-  setState(() {
-    _isCreatingPost = true;
-  });
-
-  // If all conditions are satisfied, proceed with sending the post to the server
-  await DatabaseHelper.instance.database;
-  List<Map<String, dynamic>> allUserData =
-      await DatabaseHelper.instance.getAllUserData();
-  String localEmail = allUserData.first['email'];
-  final newPost = {
-    'email': localEmail,
-    'title': _titleController.text,
-    'description': _descriptionController.text,
-    'link': link,
-    'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
-  };
-  try {
-    var request = http.MultipartRequest(
-        'POST', Uri.parse('http://188.166.218.202/upload'));
-    newPost.forEach((key, value) {
-      request.fields[key] = value.toString();
-    });
-    if (_selectedPhotos != null) {
-      for (var i = 0; i < _selectedPhotos!.length; i++) {
-        var file = await http.MultipartFile.fromPath(
-          'photos',
-          _selectedPhotos![i].path,
+    // Validate the link format if it's not empty
+    String link = _linkController.text.trim();
+    if (link.isNotEmpty) {
+      // Regular expression to validate website or social media handle
+      RegExp regExp = RegExp(
+        r"^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})(?:\/\S*)?$",
+      );
+      if (!regExp.hasMatch(link)) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Invalid link format."),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
         );
-        request.files.add(file);
+        return; // Do not proceed further if link format is invalid
       }
     }
 
-    var response = await http.Response.fromStream(await request.send());
-    print('Server Response: ${response.body}');
-
-    // Notify the parent widget about the new post
-    widget.onPostAdded(newPost);
-  } catch (e) {
-    print('Error uploading images: $e');
-  } finally {
-    // Hide loading spinner
+    // Show loading spinner while sending the post
     setState(() {
-      _isCreatingPost = false;
+      _isCreatingPost = true;
     });
-    Navigator.pop(context); // Close the add post page after creating the post
+
+    // If all conditions are satisfied, proceed with sending the post to the server
+    await DatabaseHelper.instance.database;
+    List<Map<String, dynamic>> allUserData =
+        await DatabaseHelper.instance.getAllUserData();
+    String localEmail = allUserData.first['email'];
+    final newPost = {
+      'email': localEmail,
+      'title': _titleController.text,
+      'description': _descriptionController.text,
+      'links': link,
+      'photos': _selectedPhotos?.map((file) => file.path).toList() ?? [],
+    };
+    try {
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('http://188.166.218.202/upload'));
+      newPost.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+      if (_selectedPhotos != null) {
+        for (var i = 0; i < _selectedPhotos!.length; i++) {
+          var file = await http.MultipartFile.fromPath(
+            'photos',
+            _selectedPhotos![i].path,
+          );
+          request.files.add(file);
+        }
+      }
+
+      var response = await http.Response.fromStream(await request.send());
+      print('Server Response: ${response.body}');
+
+      // Notify the parent widget about the new post
+      widget.onPostAdded(newPost);
+    } catch (e) {
+      print('Error uploading images: $e');
+    } finally {
+      // Hide loading spinner
+      setState(() {
+        _isCreatingPost = false;
+      });
+      Navigator.pop(context); // Close the add post page after creating the post
+    }
   }
-}
-
-
 }
