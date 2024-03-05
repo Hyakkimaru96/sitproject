@@ -7,6 +7,7 @@ import 'package:sit/Auth%20flow/verify.dart';
 import 'package:sit/Utilities/Database_helper.dart';
 import 'package:sit/Utilities/firebase_options.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sit/onboarding.dart';
 import '../Main application/dashboard.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -148,6 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 isVerified: isVerified,
                 admin_approved: adminapproved,
                 profile_pic: responseBody['profile_pic']);
+            await DatabaseHelper.instance.insertAdditional(
+                email: responseBody['email'],
+                intro: responseBody['intro'],
+                website: responseBody['website']);
             _hideLoadingDialogsuccess(context);
             Fluttertoast.showToast(
               msg: 'Login Success..',
@@ -391,10 +396,7 @@ class SetMasterpinScreen extends StatefulWidget {
 
 class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   TextEditingController _masterpinController = TextEditingController();
-
-  // Create a boolean variable to track whether all required fields are filled
   bool areAllFieldsFilled = false;
   bool _loading = false;
 
@@ -435,15 +437,19 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
     );
   }
 
-  // Define a method to hide the loading dialog
   void _hideLoadingDialogmpin(BuildContext context) {
     Navigator.of(context).pop();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Dashboard(),
-      ),
-    );
+
+    if (_loading) {
+      _getEmailFromLocal().then((email) {
+        if (email != null && email.isNotEmpty) {
+          String mpin = _masterpinController.text;
+          postMasterpin(email, mpin);
+        } else {
+          print('Error getting email from local.');
+        }
+      });
+    }
   }
 
   @override
@@ -454,9 +460,7 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 20.0,
-            ),
+            SizedBox(height: 20.0),
             Container(
               alignment: Alignment.center,
               child: Image.asset(
@@ -502,30 +506,14 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
             ElevatedButton(
               onPressed: areAllFieldsFilled
                   ? () async {
-                      // Simulating a 1-second delay for setting masterpin
                       setState(() {
-                        _loading = true; // Show spinner
+                        _loading = true;
                       });
-                      _showLoadingDialog(context); // Show loading dialog
+                      _showLoadingDialog(context);
                       await Future.delayed(Duration(seconds: 1));
-                      await DatabaseHelper.instance.database;
-                      List<Map<String, dynamic>> allUserData =
-                          await DatabaseHelper.instance.getAllUserData();
-                      String email = allUserData.first['email'];
-                      String mpin = _masterpinController.text;
-                      await postMasterpin(email, mpin);
-                      setState(() {
-                        _loading = false; // Hide spinner
-                      });
-                      _hideLoadingDialogmpin(context); // Hide loading dialog
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Dashboard(),
-                        ),
-                      );
+                      _hideLoadingDialogmpin(context);
                     }
-                  : null, // Disable the button if not all fields are filled
+                  : null,
               child: Text('Set Masterpin'),
             ),
           ],
@@ -547,20 +535,47 @@ class _SetMasterpinScreenState extends State<SetMasterpinScreen> {
       );
 
       if (response.statusCode == 200) {
-        print('Masterpin set successfully. Backend response: ${response.body}');
+        print('Masterpin set successfully.');
         await DatabaseHelper.instance.updatemPin(email, mpin);
+
+        // Check if the response body is JSON
+        if (response.body.isNotEmpty) {
+          try {
+            final responseBody = json.decode(response.body);
+            final isVerified = responseBody['is_verified'];
+            print('Is Verified: $isVerified');
+
+            if (isVerified == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OnBoardPage(),
+                ),
+              );
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VerificationScreen(),
+                ),
+              );
+            }
+          } catch (e) {
+            print('Error parsing response body: $e');
+          }
+        } else {
+          print('Empty response body');
+        }
       } else {
-        print(
-            'Error setting masterpin: ${response.statusCode}, ${response.body}');
+        print('Error setting masterpin');
       }
     } catch (e) {
       print('Error during HTTP request: $e');
     }
   }
 
-  Future<String> getEmailFromLocal() async {
+  Future<String> _getEmailFromLocal() async {
     String email = '';
-    await DatabaseHelper.instance.database;
     List<Map<String, dynamic>> allUserData =
         await DatabaseHelper.instance.getAllUserData();
 
